@@ -1,0 +1,228 @@
+[
+    {
+        "inputs": [
+            {
+                "internalType": "address",
+                "name": "_roleManagerAddress",
+                "type": "address"
+            }
+        ],
+        "stateMutability": "nonpayable",
+        "type": "constructor"
+    },
+    {
+        "anonymous": false,
+        "inputs": [
+            {
+                "indexed": false,
+                "internalType": "string",
+                "name": "idLahan",
+                "type": "string"
+            },
+            {
+                "indexed": true,
+                "internalType": "address",
+                "name": "petani",
+                "type": "address"
+            }
+        ],
+        "name": "LahanRegistered",
+        "type": "event"
+    },
+    {
+        "inputs": [
+            {
+                "internalType": "string",
+                "name": "_idLahan",
+                "type": "string"
+            },
+            {
+                "internalType": "string",
+                "name": "_noSTDB",
+                "type": "string"
+            },
+            {
+                "internalType": "string",
+                "name": "_koordinat",
+                "type": "string"
+            },
+            {
+                "internalType": "uint256",
+                "name": "_luas",
+                "type": "uint256"
+            },
+            {
+                "internalType": "string",
+                "name": "_idVar1",
+                "type": "string"
+            },
+            {
+                "internalType": "string",
+                "name": "_idVar2",
+                "type": "string"
+            },
+            {
+                "internalType": "bool",
+                "name": "_isBebasDeforestasi",
+                "type": "bool"
+            }
+        ],
+        "name": "registerLand",
+        "outputs": [],
+        "stateMutability": "nonpayable",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "internalType": "string",
+                "name": "_idVar",
+                "type": "string"
+            },
+            {
+                "internalType": "string",
+                "name": "_skPelepasan",
+                "type": "string"
+            },
+            {
+                "internalType": "uint256",
+                "name": "_masaEdar",
+                "type": "uint256"
+            }
+        ],
+        "name": "registerVariety",
+        "outputs": [],
+        "stateMutability": "nonpayable",
+        "type": "function"
+    },
+    {
+        "anonymous": false,
+        "inputs": [
+            {
+                "indexed": false,
+                "internalType": "string",
+                "name": "idVarietas",
+                "type": "string"
+            },
+            {
+                "indexed": true,
+                "internalType": "address",
+                "name": "penangkar",
+                "type": "address"
+            }
+        ],
+        "name": "VarietasRegistered",
+        "type": "event"
+    },
+    {
+        "inputs": [
+            {
+                "internalType": "string",
+                "name": "",
+                "type": "string"
+            }
+        ],
+        "name": "dataLahan",
+        "outputs": [
+            {
+                "internalType": "string",
+                "name": "idLahan",
+                "type": "string"
+            },
+            {
+                "internalType": "string",
+                "name": "noSTDB",
+                "type": "string"
+            },
+            {
+                "internalType": "string",
+                "name": "koordinat",
+                "type": "string"
+            },
+            {
+                "internalType": "uint256",
+                "name": "luas",
+                "type": "uint256"
+            },
+            {
+                "internalType": "string",
+                "name": "idVar1",
+                "type": "string"
+            },
+            {
+                "internalType": "string",
+                "name": "idVar2",
+                "type": "string"
+            },
+            {
+                "internalType": "bool",
+                "name": "isBebasDeforestasi",
+                "type": "bool"
+            },
+            {
+                "internalType": "address",
+                "name": "petani",
+                "type": "address"
+            },
+            {
+                "internalType": "uint256",
+                "name": "timestamp",
+                "type": "uint256"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "internalType": "string",
+                "name": "",
+                "type": "string"
+            }
+        ],
+        "name": "dataVarietas",
+        "outputs": [
+            {
+                "internalType": "string",
+                "name": "idVarietas",
+                "type": "string"
+            },
+            {
+                "internalType": "string",
+                "name": "skPelepasan",
+                "type": "string"
+            },
+            {
+                "internalType": "uint256",
+                "name": "masaEdar",
+                "type": "uint256"
+            },
+            {
+                "internalType": "address",
+                "name": "penangkar",
+                "type": "address"
+            },
+            {
+                "internalType": "uint256",
+                "name": "timestamp",
+                "type": "uint256"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [],
+        "name": "roleManager",
+        "outputs": [
+            {
+                "internalType": "contract IRoleManager",
+                "name": "",
+                "type": "address"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    }
+]

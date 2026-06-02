@@ -1,0 +1,245 @@
+[
+    {
+        "inputs": [
+            {
+                "internalType": "string",
+                "name": "_idBaru",
+                "type": "string"
+            },
+            {
+                "internalType": "string[]",
+                "name": "_idSumber",
+                "type": "string[]"
+            },
+            {
+                "internalType": "uint256",
+                "name": "_totalQty",
+                "type": "uint256"
+            }
+        ],
+        "name": "createCollectorBatch",
+        "outputs": [],
+        "stateMutability": "nonpayable",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "internalType": "string",
+                "name": "_idBaru",
+                "type": "string"
+            },
+            {
+                "internalType": "string[]",
+                "name": "_idSumber",
+                "type": "string[]"
+            },
+            {
+                "internalType": "enum Traceability.TingkatProses",
+                "name": "_tingkat",
+                "type": "uint8"
+            },
+            {
+                "internalType": "uint256",
+                "name": "_totalQty",
+                "type": "uint256"
+            },
+            {
+                "internalType": "string",
+                "name": "_mutu",
+                "type": "string"
+            }
+        ],
+        "name": "createCompanyBatch",
+        "outputs": [],
+        "stateMutability": "nonpayable",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "internalType": "string",
+                "name": "_idBatch",
+                "type": "string"
+            },
+            {
+                "internalType": "string",
+                "name": "_idLahan",
+                "type": "string"
+            },
+            {
+                "internalType": "uint256",
+                "name": "_qty",
+                "type": "uint256"
+            },
+            {
+                "internalType": "bool",
+                "name": "_isFerment",
+                "type": "bool"
+            }
+        ],
+        "name": "createHarvestBatch",
+        "outputs": [],
+        "stateMutability": "nonpayable",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "internalType": "address",
+                "name": "_roleManagerAddress",
+                "type": "address"
+            },
+            {
+                "internalType": "address",
+                "name": "_masterDataAddress",
+                "type": "address"
+            }
+        ],
+        "stateMutability": "nonpayable",
+        "type": "constructor"
+    },
+    {
+        "inputs": [
+            {
+                "internalType": "string",
+                "name": "",
+                "type": "string"
+            }
+        ],
+        "name": "dataAgregasi",
+        "outputs": [
+            {
+                "internalType": "string",
+                "name": "idBatchBaru",
+                "type": "string"
+            },
+            {
+                "internalType": "enum Traceability.TingkatProses",
+                "name": "tingkat",
+                "type": "uint8"
+            },
+            {
+                "internalType": "uint256",
+                "name": "totalQty",
+                "type": "uint256"
+            },
+            {
+                "internalType": "string",
+                "name": "parameterMutu",
+                "type": "string"
+            },
+            {
+                "internalType": "address",
+                "name": "pemilik",
+                "type": "address"
+            },
+            {
+                "internalType": "bool",
+                "name": "isAggregated",
+                "type": "bool"
+            },
+            {
+                "internalType": "uint256",
+                "name": "timestamp",
+                "type": "uint256"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "internalType": "string",
+                "name": "",
+                "type": "string"
+            }
+        ],
+        "name": "dataPanen",
+        "outputs": [
+            {
+                "internalType": "string",
+                "name": "idBatchPanen",
+                "type": "string"
+            },
+            {
+                "internalType": "string",
+                "name": "idLahan",
+                "type": "string"
+            },
+            {
+                "internalType": "uint256",
+                "name": "qtyPanen",
+                "type": "uint256"
+            },
+            {
+                "internalType": "bool",
+                "name": "isFermented",
+                "type": "bool"
+            },
+            {
+                "internalType": "address",
+                "name": "petani",
+                "type": "address"
+            },
+            {
+                "internalType": "bool",
+                "name": "isAggregated",
+                "type": "bool"
+            },
+            {
+                "internalType": "uint256",
+                "name": "timestamp",
+                "type": "uint256"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "internalType": "string",
+                "name": "_idBatch",
+                "type": "string"
+            }
+        ],
+        "name": "getSumberAgregasi",
+        "outputs": [
+            {
+                "internalType": "string[]",
+                "name": "",
+                "type": "string[]"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [],
+        "name": "masterData",
+        "outputs": [
+            {
+                "internalType": "contract IMasterData",
+                "name": "",
+                "type": "address"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [],
+        "name": "roleManager",
+        "outputs": [
+            {
+                "internalType": "contract IRoleManager",
+                "name": "",
+                "type": "address"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    }
+]
