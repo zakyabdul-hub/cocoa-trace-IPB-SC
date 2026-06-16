@@ -443,7 +443,7 @@ with col_map:
                 st.error(f"Error: {str(e)}")
     
     st.markdown("</div>", unsafe_allow_html=True)
-    
+
     # Panduan Koordinat Simulasi
     if gdf is not None and status == "OK":
         st.markdown("""
@@ -455,3 +455,81 @@ with col_map:
             <div>❌ <strong>Kawasan Hutan B</strong>: Lat=-4.2, Lon=119.2</div>
         </div>
         """, unsafe_allow_html=True)
+
+# ============================================================
+# PANEL DAFTAR SEMUA LAHAN (Full Width)
+# ============================================================
+st.markdown("---")
+st.markdown("""
+<div style="font-family: 'Space Grotesk', sans-serif; font-size: 1.2rem; font-weight: 700;
+     color: #38BDF8; margin-bottom: 16px;">
+    📋 Daftar Semua Lahan Terdaftar
+</div>
+""", unsafe_allow_html=True)
+
+col_ref2, col_cnt2, col_filter2 = st.columns([1, 2, 2])
+with col_ref2:
+    refresh_lahan = st.button("🔄 Muat / Refresh", key="btn_refresh_lahan")
+with col_filter2:
+    filter_milik_saya = st.checkbox("👤 Tampilkan Lahan Saya Saja", key="chk_lahan_saya")
+
+if refresh_lahan or st.session_state.get('lahan_list_loaded'):
+    if st.session_state.get('ganache_connected'):
+        try:
+            contracts = st.session_state.contracts
+            master_data = contracts['MasterData']
+
+            # Pilih fungsi berdasarkan filter
+            if filter_milik_saya and st.session_state.get('wallet_address'):
+                from web3 import Web3
+                my_addr = Web3.to_checksum_address(st.session_state.wallet_address)
+                all_ids = master_data.functions.getLahanByPetani(my_addr).call()
+                filter_label = "milik wallet Anda"
+            else:
+                all_ids = master_data.functions.getAllLahanIds().call()
+                filter_label = "seluruh blockchain"
+
+            total = master_data.functions.getTotalLahan().call()
+            st.session_state['lahan_list_loaded'] = True
+
+            with col_cnt2:
+                st.markdown(f"""
+                <div style="background: rgba(2,132,199,0.08); border: 1px solid rgba(56,189,248,0.2);
+                     border-radius: 10px; padding: 10px 16px; font-size: 0.85rem; color: #7DD3FC;">
+                    📊 Total Lahan ({filter_label}): <strong style="color: #38BDF8; font-size: 1.1rem;">{len(all_ids)}</strong>
+                    &nbsp;|&nbsp; Total Keseluruhan: <strong>{total}</strong>
+                </div>
+                """, unsafe_allow_html=True)
+
+            if not all_ids:
+                st.info("📭 Belum ada lahan yang terdaftar.")
+            else:
+                rows = []
+                for lid in all_ids:
+                    try:
+                        data = master_data.functions.dataLahan(lid).call()
+                        id_l, no_s, koor, luas, v1, v2, is_bebas, petani, ts = data
+                        reg_time = datetime.fromtimestamp(ts).strftime("%d %b %Y")
+                        rows.append({
+                            "ID Lahan": id_l,
+                            "No. STDB": no_s,
+                            "Koordinat": koor,
+                            "Luas (m2)": f"{luas:,}",
+                            "Var. Utama": v1,
+                            "Bebas Def.": "Ya" if is_bebas else "Tidak",
+                            "Petani": f"{petani[:8]}...{petani[-4:]}",
+                            "Tgl Daftar": reg_time,
+                        })
+                    except Exception:
+                        rows.append({"ID Lahan": lid, "No. STDB": "Error", "Koordinat": "-",
+                                     "Luas (m2)": "-", "Var. Utama": "-", "Bebas Def.": "-",
+                                     "Petani": "-", "Tgl Daftar": "-"})
+
+                import pandas as pd
+                df = pd.DataFrame(rows)
+                st.dataframe(df, use_container_width=True, hide_index=True)
+        except Exception as e:
+            st.error(f"❌ Gagal memuat daftar lahan: {str(e)}")
+    else:
+        st.warning("⚠️ Tidak terhubung ke blockchain.")
+

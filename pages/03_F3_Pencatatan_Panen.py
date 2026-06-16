@@ -278,14 +278,96 @@ with col_info:
         <div style="font-weight: 600; color: #4ADE80; margin-bottom: 10px;">ℹ️ Alur Rantai Pasok</div>
         <div style="line-height: 2;">
             🌱 Varietas Benih (Penangkar)<br>
-            &nbsp;&nbsp;↓<br>
+            &nbsp;&nbsp;-&gt;<br>
             🗺️ Registrasi Lahan (Petani) [F2]<br>
-            &nbsp;&nbsp;↓<br>
-            🌾 <strong style="color: #4ADE80;">Catat Panen (Petani) ← Anda di sini</strong><br>
-            &nbsp;&nbsp;↓<br>
+            &nbsp;&nbsp;-&gt;<br>
+            🌾 <strong style="color: #4ADE80;">Catat Panen (Petani) -- Anda di sini</strong><br>
+            &nbsp;&nbsp;-&gt;<br>
             📦 Agregasi Pengepul [F4]<br>
-            &nbsp;&nbsp;↓<br>
+            &nbsp;&nbsp;-&gt;<br>
             🏭 Agregasi Perusahaan [F5]
         </div>
     </div>
     """, unsafe_allow_html=True)
+
+# ============================================================
+# PANEL DAFTAR SEMUA BATCH PANEN (Full Width)
+# ============================================================
+st.markdown("---")
+st.markdown("""
+<div style="font-family: 'Space Grotesk', sans-serif; font-size: 1.2rem; font-weight: 700;
+     color: #4ADE80; margin-bottom: 16px;">
+    📋 Daftar Semua Batch Panen
+</div>
+""", unsafe_allow_html=True)
+
+col_ref3, col_cnt3, col_flt3 = st.columns([1, 2, 2])
+with col_ref3:
+    refresh_panen = st.button("🔄 Muat / Refresh", key="btn_refresh_panen")
+with col_flt3:
+    filter_panen_saya = st.checkbox("👤 Batch Saya Saja", key="chk_panen_saya")
+
+if refresh_panen or st.session_state.get('panen_list_loaded'):
+    if st.session_state.get('ganache_connected'):
+        try:
+            contracts = st.session_state.contracts
+            traceability = contracts['Traceability']
+
+            if filter_panen_saya and st.session_state.get('wallet_address'):
+                from web3 import Web3
+                my_addr = Web3.to_checksum_address(st.session_state.wallet_address)
+                all_ids = traceability.functions.getMyHarvestBatches(my_addr).call()
+                filter_label = "milik wallet Anda"
+            else:
+                all_ids = traceability.functions.getAllHarvestBatchIds().call()
+                filter_label = "seluruh blockchain"
+
+            total = traceability.functions.getTotalHarvestBatches().call()
+            st.session_state['panen_list_loaded'] = True
+
+            with col_cnt3:
+                st.markdown(f"""
+                <div style="background: rgba(5,150,105,0.08); border: 1px solid rgba(52,211,153,0.2);
+                     border-radius: 10px; padding: 10px 16px; font-size: 0.85rem; color: #86EFAC;">
+                    📊 Ditampilkan ({filter_label}): <strong style="color: #4ADE80;">{len(all_ids)}</strong>
+                    &nbsp;|&nbsp; Total: <strong>{total}</strong>
+                </div>
+                """, unsafe_allow_html=True)
+
+            if not all_ids:
+                st.info("📭 Belum ada batch panen yang terdaftar.")
+            else:
+                rows = []
+                for bid in all_ids:
+                    try:
+                        data = traceability.functions.getHarvestBatchDetail(bid).call()
+                        id_b, id_l, qty, is_ferm, petani, is_agg, ts = data
+                        rows.append({
+                            "ID Batch": id_b,
+                            "ID Lahan": id_l,
+                            "Qty (Kg)": f"{qty:,}",
+                            "Fermentasi": "Ya" if is_ferm else "Tidak",
+                            "Status": "Diagregasi" if is_agg else "Tersedia",
+                            "Petani": f"{petani[:8]}...{petani[-4:]}",
+                            "Waktu": datetime.fromtimestamp(ts).strftime("%d %b %Y"),
+                        })
+                    except Exception:
+                        rows.append({"ID Batch": bid, "ID Lahan": "-", "Qty (Kg)": "-",
+                                     "Fermentasi": "-", "Status": "Error", "Petani": "-", "Waktu": "-"})
+
+                import pandas as pd
+                df = pd.DataFrame(rows)
+
+                def highlight_status(val):
+                    if val == "Diagregasi":
+                        return "color: #FCD34D"
+                    elif val == "Tersedia":
+                        return "color: #4ADE80"
+                    return ""
+
+                st.dataframe(df, use_container_width=True, hide_index=True)
+        except Exception as e:
+            st.error(f"❌ Gagal memuat daftar batch panen: {str(e)}")
+    else:
+        st.warning("⚠️ Tidak terhubung ke blockchain.")
+

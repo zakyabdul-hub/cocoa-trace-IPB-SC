@@ -385,5 +385,92 @@ with col_batch:
                     """, unsafe_allow_html=True)
             except Exception as e:
                 st.error(f"Error: {str(e)}")
-    
+
     st.markdown("</div>", unsafe_allow_html=True)
+
+
+# ============================================================
+# PANEL DAFTAR SEMUA BATCH PENGEPUL (Full Width)
+# ============================================================
+st.markdown("---")
+st.markdown("""
+<div style="font-family: 'Space Grotesk', sans-serif; font-size: 1.2rem; font-weight: 700;
+     color: #FCD34D; margin-bottom: 16px;">
+    📋 Daftar Semua Batch Pengepul (Level 0)
+</div>
+""", unsafe_allow_html=True)
+
+col_ref4, col_cnt4, col_flt4 = st.columns([1, 2, 2])
+with col_ref4:
+    refresh_pengepul = st.button("🔄 Muat / Refresh", key="btn_refresh_pengepul")
+with col_flt4:
+    filter_pengepul_saya = st.checkbox("👤 Batch Saya Saja", key="chk_pengepul_saya")
+
+if refresh_pengepul or st.session_state.get('pengepul_list_loaded'):
+    if st.session_state.get('ganache_connected'):
+        try:
+            contracts = st.session_state.contracts
+            traceability = contracts['Traceability']
+
+            if filter_pengepul_saya and st.session_state.get('wallet_address'):
+                from web3 import Web3
+                my_addr = Web3.to_checksum_address(st.session_state.wallet_address)
+                all_ids = traceability.functions.getMyAgregasiBatches(my_addr).call()
+                # Filter hanya level 0 (Pengepul)
+                filtered = []
+                for bid in all_ids:
+                    try:
+                        data = traceability.functions.dataAgregasi(bid).call()
+                        if data[1] == 0:  # tingkat == 0 (Pengepul)
+                            filtered.append(bid)
+                    except Exception:
+                        pass
+                all_ids = filtered
+                filter_label = "milik wallet Anda"
+            else:
+                all_ids = traceability.functions.getBatchIdsByLevel(0).call()
+                filter_label = "seluruh blockchain"
+
+            total = traceability.functions.getTotalBatchByLevel(0).call()
+            st.session_state['pengepul_list_loaded'] = True
+
+            with col_cnt4:
+                st.markdown(f"""
+                <div style="background: rgba(217,119,6,0.08); border: 1px solid rgba(245,158,11,0.2);
+                     border-radius: 10px; padding: 10px 16px; font-size: 0.85rem; color: #FDE68A;">
+                    📊 Ditampilkan ({filter_label}): <strong style="color: #FCD34D;">{len(all_ids)}</strong>
+                    &nbsp;|&nbsp; Total: <strong>{total}</strong>
+                </div>
+                """, unsafe_allow_html=True)
+
+            if not all_ids:
+                st.info("📭 Belum ada batch pengepul yang terdaftar.")
+            else:
+                from config import TINGKAT_PROSES_MAP
+                rows = []
+                for bid in all_ids:
+                    try:
+                        data = traceability.functions.dataAgregasi(bid).call()
+                        id_b, tingkat, qty, mutu, pemilik, is_agg, ts = data
+                        sumber = traceability.functions.getSumberAgregasi(bid).call()
+                        rows.append({
+                            "ID Batch": id_b,
+                            "Tingkat": TINGKAT_PROSES_MAP.get(tingkat, "?"),
+                            "Total Qty (Kg)": f"{qty:,}",
+                            "Jml Sumber": len(sumber),
+                            "Status": "Diagregasi" if is_agg else "Tersedia",
+                            "Pemilik": f"{pemilik[:8]}...{pemilik[-4:]}",
+                            "Waktu": datetime.fromtimestamp(ts).strftime("%d %b %Y"),
+                        })
+                    except Exception:
+                        rows.append({"ID Batch": bid, "Tingkat": "-", "Total Qty (Kg)": "-",
+                                     "Jml Sumber": "-", "Status": "Error", "Pemilik": "-", "Waktu": "-"})
+
+                import pandas as pd
+                df = pd.DataFrame(rows)
+                st.dataframe(df, use_container_width=True, hide_index=True)
+        except Exception as e:
+            st.error(f"❌ Gagal memuat daftar batch pengepul: {str(e)}")
+    else:
+        st.warning("⚠️ Tidak terhubung ke blockchain.")
+

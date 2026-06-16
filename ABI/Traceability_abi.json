@@ -2,6 +2,108 @@
     {
         "inputs": [
             {
+                "internalType": "address",
+                "name": "_roleManagerAddress",
+                "type": "address"
+            },
+            {
+                "internalType": "address",
+                "name": "_masterDataAddress",
+                "type": "address"
+            }
+        ],
+        "stateMutability": "nonpayable",
+        "type": "constructor"
+    },
+    {
+        "anonymous": false,
+        "inputs": [
+            {
+                "indexed": true,
+                "internalType": "string",
+                "name": "idBatchBaru",
+                "type": "string"
+            },
+            {
+                "indexed": false,
+                "internalType": "string[]",
+                "name": "idSumber",
+                "type": "string[]"
+            },
+            {
+                "indexed": false,
+                "internalType": "uint256",
+                "name": "totalQty",
+                "type": "uint256"
+            },
+            {
+                "indexed": true,
+                "internalType": "address",
+                "name": "pengepul",
+                "type": "address"
+            },
+            {
+                "indexed": false,
+                "internalType": "uint256",
+                "name": "timestamp",
+                "type": "uint256"
+            }
+        ],
+        "name": "CollectorBatchCreated",
+        "type": "event"
+    },
+    {
+        "anonymous": false,
+        "inputs": [
+            {
+                "indexed": true,
+                "internalType": "string",
+                "name": "idBatchBaru",
+                "type": "string"
+            },
+            {
+                "indexed": false,
+                "internalType": "string[]",
+                "name": "idSumber",
+                "type": "string[]"
+            },
+            {
+                "indexed": false,
+                "internalType": "enum Traceability.TingkatProses",
+                "name": "tingkat",
+                "type": "uint8"
+            },
+            {
+                "indexed": false,
+                "internalType": "uint256",
+                "name": "totalQty",
+                "type": "uint256"
+            },
+            {
+                "indexed": false,
+                "internalType": "string",
+                "name": "parameterMutu",
+                "type": "string"
+            },
+            {
+                "indexed": true,
+                "internalType": "address",
+                "name": "pemilik",
+                "type": "address"
+            },
+            {
+                "indexed": false,
+                "internalType": "uint256",
+                "name": "timestamp",
+                "type": "uint256"
+            }
+        ],
+        "name": "CompanyBatchCreated",
+        "type": "event"
+    },
+    {
+        "inputs": [
+            {
                 "internalType": "string",
                 "name": "_idBaru",
                 "type": "string"
@@ -84,20 +186,114 @@
         "type": "function"
     },
     {
+        "anonymous": false,
         "inputs": [
             {
+                "indexed": true,
+                "internalType": "string",
+                "name": "idBatchPanen",
+                "type": "string"
+            },
+            {
+                "indexed": false,
+                "internalType": "string",
+                "name": "idLahan",
+                "type": "string"
+            },
+            {
+                "indexed": false,
+                "internalType": "uint256",
+                "name": "qtyPanen",
+                "type": "uint256"
+            },
+            {
+                "indexed": false,
+                "internalType": "bool",
+                "name": "isFermented",
+                "type": "bool"
+            },
+            {
+                "indexed": true,
                 "internalType": "address",
-                "name": "_roleManagerAddress",
+                "name": "petani",
                 "type": "address"
             },
             {
-                "internalType": "address",
-                "name": "_masterDataAddress",
-                "type": "address"
+                "indexed": false,
+                "internalType": "uint256",
+                "name": "timestamp",
+                "type": "uint256"
             }
         ],
-        "stateMutability": "nonpayable",
-        "type": "constructor"
+        "name": "HarvestBatchCreated",
+        "type": "event"
+    },
+    {
+        "inputs": [
+            {
+                "internalType": "address",
+                "name": "",
+                "type": "address"
+            },
+            {
+                "internalType": "uint256",
+                "name": "",
+                "type": "uint256"
+            }
+        ],
+        "name": "agregasiBatchByPemilik",
+        "outputs": [
+            {
+                "internalType": "string",
+                "name": "",
+                "type": "string"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "internalType": "uint256",
+                "name": "",
+                "type": "uint256"
+            }
+        ],
+        "name": "allHarvestBatchIds",
+        "outputs": [
+            {
+                "internalType": "string",
+                "name": "",
+                "type": "string"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "internalType": "uint256",
+                "name": "",
+                "type": "uint256"
+            },
+            {
+                "internalType": "uint256",
+                "name": "",
+                "type": "uint256"
+            }
+        ],
+        "name": "batchIdsByLevel",
+        "outputs": [
+            {
+                "internalType": "string",
+                "name": "",
+                "type": "string"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
     },
     {
         "inputs": [
@@ -205,12 +401,236 @@
                 "type": "string"
             }
         ],
+        "name": "getAgregasiBatchDetail",
+        "outputs": [
+            {
+                "internalType": "string",
+                "name": "idBatchBaru",
+                "type": "string"
+            },
+            {
+                "internalType": "enum Traceability.TingkatProses",
+                "name": "tingkat",
+                "type": "uint8"
+            },
+            {
+                "internalType": "uint256",
+                "name": "totalQty",
+                "type": "uint256"
+            },
+            {
+                "internalType": "string",
+                "name": "parameterMutu",
+                "type": "string"
+            },
+            {
+                "internalType": "address",
+                "name": "pemilik",
+                "type": "address"
+            },
+            {
+                "internalType": "bool",
+                "name": "isAggregated",
+                "type": "bool"
+            },
+            {
+                "internalType": "uint256",
+                "name": "timestamp",
+                "type": "uint256"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [],
+        "name": "getAllHarvestBatchIds",
+        "outputs": [
+            {
+                "internalType": "string[]",
+                "name": "",
+                "type": "string[]"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "internalType": "uint256",
+                "name": "_level",
+                "type": "uint256"
+            }
+        ],
+        "name": "getBatchIdsByLevel",
+        "outputs": [
+            {
+                "internalType": "string[]",
+                "name": "",
+                "type": "string[]"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "internalType": "string",
+                "name": "_idBatch",
+                "type": "string"
+            }
+        ],
+        "name": "getHarvestBatchDetail",
+        "outputs": [
+            {
+                "internalType": "string",
+                "name": "idBatchPanen",
+                "type": "string"
+            },
+            {
+                "internalType": "string",
+                "name": "idLahan",
+                "type": "string"
+            },
+            {
+                "internalType": "uint256",
+                "name": "qtyPanen",
+                "type": "uint256"
+            },
+            {
+                "internalType": "bool",
+                "name": "isFermented",
+                "type": "bool"
+            },
+            {
+                "internalType": "address",
+                "name": "petani",
+                "type": "address"
+            },
+            {
+                "internalType": "bool",
+                "name": "isAggregated",
+                "type": "bool"
+            },
+            {
+                "internalType": "uint256",
+                "name": "timestamp",
+                "type": "uint256"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "internalType": "address",
+                "name": "_pemilik",
+                "type": "address"
+            }
+        ],
+        "name": "getMyAgregasiBatches",
+        "outputs": [
+            {
+                "internalType": "string[]",
+                "name": "",
+                "type": "string[]"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "internalType": "address",
+                "name": "_petani",
+                "type": "address"
+            }
+        ],
+        "name": "getMyHarvestBatches",
+        "outputs": [
+            {
+                "internalType": "string[]",
+                "name": "",
+                "type": "string[]"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "internalType": "string",
+                "name": "_idBatch",
+                "type": "string"
+            }
+        ],
         "name": "getSumberAgregasi",
         "outputs": [
             {
                 "internalType": "string[]",
                 "name": "",
                 "type": "string[]"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "internalType": "uint256",
+                "name": "_level",
+                "type": "uint256"
+            }
+        ],
+        "name": "getTotalBatchByLevel",
+        "outputs": [
+            {
+                "internalType": "uint256",
+                "name": "",
+                "type": "uint256"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [],
+        "name": "getTotalHarvestBatches",
+        "outputs": [
+            {
+                "internalType": "uint256",
+                "name": "",
+                "type": "uint256"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "internalType": "address",
+                "name": "",
+                "type": "address"
+            },
+            {
+                "internalType": "uint256",
+                "name": "",
+                "type": "uint256"
+            }
+        ],
+        "name": "harvestBatchByPetani",
+        "outputs": [
+            {
+                "internalType": "string",
+                "name": "",
+                "type": "string"
             }
         ],
         "stateMutability": "view",

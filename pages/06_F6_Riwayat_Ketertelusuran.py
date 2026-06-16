@@ -1,4 +1,4 @@
-"""
+﻿"""
 06_F6_Riwayat_Ketertelusuran.py
 Fitur F6: Melihat Riwayat Ketertelusuran (Traceback Rekursif)
 Aktor: Semua Pengguna / Publik
@@ -549,64 +549,256 @@ if 'trace_result' not in st.session_state:
     st.session_state.trace_result = None
 if 'trace_root_id' not in st.session_state:
     st.session_state.trace_root_id = ""
+if 'browse_trigger_id' not in st.session_state:
+    st.session_state.browse_trigger_id = ""
 
 # ============================================================
-# INPUT PENCARIAN
+# HELPER: Load batch list per level
 # ============================================================
-col_search, col_btn = st.columns([5, 1])
+def load_batch_list(level: str) -> list:
+    """
+    Memuat list batch dari blockchain berdasarkan level.
+    level: 'panen' | '0' | '1' | '2' | '3'
+    Returns list of dicts untuk ditampilkan sebagai tabel.
+    """
+    if not st.session_state.get('ganache_connected'):
+        return []
 
-with col_search:
-    search_id = st.text_input(
-        "🔍 Masukkan ID Batch yang Ingin Ditelusuri",
-        placeholder="Contoh: COMP-PUSAT-001  atau  COL-POLMAN-001  atau  BTC-PETANI-001",
-        value=st.session_state.trace_root_id,
-        key="trace_search_input",
-        label_visibility="collapsed"
-    )
+    contracts = st.session_state.contracts
+    traceability = contracts['Traceability']
+    rows = []
 
-with col_btn:
-    do_trace = st.button("🔍 Lacak", key="btn_trace", use_container_width=True)
+    try:
+        if level == 'panen':
+            all_ids = traceability.functions.getAllHarvestBatchIds().call()
+            for bid in all_ids:
+                try:
+                    data = traceability.functions.getHarvestBatchDetail(bid).call()
+                    id_b, id_l, qty, is_ferm, petani, is_agg, ts = data
+                    rows.append({
+                        "ID Batch": id_b,
+                        "ID Lahan": id_l,
+                        "Qty (Kg)": f"{qty:,}",
+                        "Fermentasi": "Ya" if is_ferm else "Tidak",
+                        "Status": "🔒 Diagregasi" if is_agg else "🟢 Tersedia",
+                        "Petani": f"{petani[:8]}...{petani[-4:]}",
+                        "Waktu": datetime.fromtimestamp(ts).strftime("%d %b %Y"),
+                    })
+                except Exception:
+                    pass
+        else:
+            lvl_int = int(level)
+            all_ids = traceability.functions.getBatchIdsByLevel(lvl_int).call()
+            for bid in all_ids:
+                try:
+                    data = traceability.functions.dataAgregasi(bid).call()
+                    id_b, tingkat, qty, mutu, pemilik, is_agg, ts = data
+                    sumber = traceability.functions.getSumberAgregasi(bid).call()
+                    rows.append({
+                        "ID Batch": id_b,
+                        "Tingkat": TINGKAT_PROSES_MAP.get(tingkat, "?"),
+                        "Qty (Kg)": f"{qty:,}",
+                        "Jml Sumber": len(sumber),
+                        "Mutu": mutu[:35] + "..." if len(mutu) > 35 else mutu,
+                        "Status": "🔒 Diagregasi" if is_agg else "🟢 Tersedia",
+                        "Pemilik": f"{pemilik[:8]}...{pemilik[-4:]}",
+                        "Waktu": datetime.fromtimestamp(ts).strftime("%d %b %Y"),
+                    })
+                except Exception:
+                    pass
+    except Exception as e:
+        st.error(f"❌ Gagal memuat data: {str(e)}")
 
-# Quick examples
-with st.expander("📌 Contoh ID Batch untuk Dilacak"):
-    st.markdown("""
-    Gunakan ID dari batch yang sudah Anda buat melalui fitur F3, F4, atau F5.
-    - **F3 Batch Panen**: `BTC-PETANI-001`
-    - **F4 Batch Pengepul**: `COL-POLMAN-001`
-    - **F5 GudangKab**: `COMP-GK-001`
-    - **F5 GudangPelabuhan**: `COMP-PEL-001`
-    - **F5 Pusat**: `COMP-PUSAT-001`
-    """)
+    return rows
 
-# ============================================================
-# PROSES TRACEBACK
-# ============================================================
-if do_trace and search_id.strip():
+
+def run_traceback(batch_id: str):
+    """Menjalankan traceback dan menyimpan ke session state."""
     if not st.session_state.get('ganache_connected'):
         st.error("❌ Tidak terhubung ke Ganache!")
-    else:
-        st.session_state.trace_root_id = search_id.strip()
-        
-        with st.spinner("🔄 Menelusuri rantai pasok secara rekursif ke blockchain..."):
-            try:
-                contracts = st.session_state.contracts
-                
-                # Mulai traceback dari ID yang diinput
-                trace_result = get_trace_data_panen_or_agregasi(
-                    search_id.strip(), 
-                    contracts, 
-                    depth=0, 
-                    max_depth=25
-                )
-                
-                if trace_result.get('type') in ['UNKNOWN', 'ERROR']:
-                    st.error(f"❌ ID `{search_id}` tidak ditemukan di blockchain (bukan BatchPanen maupun BatchAgregasi).")
-                    st.session_state.trace_result = None
-                else:
-                    st.session_state.trace_result = trace_result
-            except Exception as e:
-                st.error(f"❌ Error saat traceback: {str(e)}")
+        return
+
+    st.session_state.trace_root_id = batch_id
+    with st.spinner(f"🔄 Menelusuri rantai pasok untuk `{batch_id}`..."):
+        try:
+            contracts = st.session_state.contracts
+            trace_result = get_trace_data_panen_or_agregasi(
+                batch_id, contracts, depth=0, max_depth=25
+            )
+            if trace_result.get('type') in ['UNKNOWN', 'ERROR']:
+                st.error(f"❌ ID `{batch_id}` tidak ditemukan di blockchain.")
                 st.session_state.trace_result = None
+            else:
+                st.session_state.trace_result = trace_result
+        except Exception as e:
+            st.error(f"❌ Error saat traceback: {str(e)}")
+            st.session_state.trace_result = None
+
+
+# ============================================================
+# MODE PENCARIAN — 2 TAB
+# ============================================================
+tab_search, tab_browse = st.tabs([
+    "🔍 Cari by ID Manual",
+    "📋 Browse & Pilih Batch per Tahapan"
+])
+
+# ----------------------------------------------------------
+# TAB 1: Cari by ID Manual (existing mode)
+# ----------------------------------------------------------
+with tab_search:
+    st.markdown("""
+    <div style="font-size: 0.85rem; color: #C4B5FD; margin-bottom: 12px;">
+        Masukkan ID Batch yang ingin ditelusuri secara langsung.
+        Sistem akan menelusuri seluruh rantai pasok secara rekursif dari hilir ke hulu.
+    </div>
+    """, unsafe_allow_html=True)
+
+    col_search, col_btn = st.columns([5, 1])
+    with col_search:
+        search_id = st.text_input(
+            "ID Batch",
+            placeholder="Contoh: COMP-PUSAT-001  |  COL-POLMAN-001  |  BTC-PETANI-001",
+            value=st.session_state.trace_root_id,
+            key="trace_search_input",
+            label_visibility="collapsed"
+        )
+    with col_btn:
+        do_trace = st.button("🔍 Lacak", key="btn_trace", use_container_width=True)
+
+    if do_trace and search_id.strip():
+        run_traceback(search_id.strip())
+        st.rerun()
+
+    with st.expander("📌 Contoh ID Batch"):
+        st.markdown("""
+        Gunakan ID dari batch yang sudah dibuat melalui F3, F4, atau F5:
+        - **F3 Batch Panen**: `BTC-PETANI-001`
+        - **F4 Batch Pengepul**: `COL-POLMAN-001`
+        - **F5 GudangKab**: `COMP-GK-001`
+        - **F5 GudangPelabuhan**: `COMP-PEL-001`
+        - **F5 Pusat**: `COMP-PUSAT-001`
+        """)
+
+# ----------------------------------------------------------
+# TAB 2: Browse Batch per Tahapan
+# ----------------------------------------------------------
+with tab_browse:
+    st.markdown("""
+    <div style="font-size: 0.85rem; color: #C4B5FD; margin-bottom: 16px;">
+        Pilih tahapan rantai pasok, lalu <strong>klik satu baris</strong> pada tabel
+        untuk memilih batch yang ingin ditelusuri, kemudian klik <strong>Lacak Batch Terpilih</strong>.
+    </div>
+    """, unsafe_allow_html=True)
+
+    # Sub-tabs per tahapan
+    stab_panen, stab_pengepul, stab_gk, stab_gp, stab_pusat = st.tabs([
+        "🌾 Panen (Petani)",
+        "📦 Pengepul (Lv.0)",
+        "🏠 GudangKab (Lv.1)",
+        "🚢 GudangPelabuhan (Lv.2)",
+        "🏛️ Pusat (Lv.3)",
+    ])
+
+    level_config = [
+        (stab_panen,    'panen', "Batch Panen",         "#4ADE80"),
+        (stab_pengepul, '0',     "Batch Pengepul",      "#FCD34D"),
+        (stab_gk,       '1',     "Batch GudangKab",     "#7DD3FC"),
+        (stab_gp,       '2',     "Batch GudangPelabuhan","#FCA5A5"),
+        (stab_pusat,    '3',     "Batch Pusat",          "#F87171"),
+    ]
+
+    for tab_obj, level_key, level_label, level_color in level_config:
+        with tab_obj:
+            col_r, col_sel = st.columns([1, 4])
+            with col_r:
+                load_btn = st.button(
+                    "🔄 Muat Daftar",
+                    key=f"load_{level_key}",
+                    use_container_width=True
+                )
+
+            # Load data jika tombol ditekan atau sudah di-cache
+            cache_key = f"browse_rows_{level_key}"
+            if load_btn:
+                with st.spinner(f"Memuat data {level_label} dari blockchain..."):
+                    rows = load_batch_list(level_key)
+                st.session_state[cache_key] = rows
+
+            rows = st.session_state.get(cache_key, None)
+
+            if rows is None:
+                st.markdown(f"""
+                <div style="text-align:center; padding: 24px; color: #6B5EA8; font-size: 0.9rem;">
+                    👆 Klik <strong>Muat Daftar</strong> untuk memuat data {level_label}
+                </div>
+                """, unsafe_allow_html=True)
+                continue
+
+            if not rows:
+                st.info(f"📭 Belum ada {level_label} yang terdaftar di blockchain.")
+                continue
+
+            with col_sel:
+                st.markdown(f"""
+                <div style="background: rgba(124,58,237,0.06); border: 1px solid rgba(124,58,237,0.15);
+                     border-radius: 10px; padding: 8px 14px; font-size: 0.82rem; color: #C4B5FD;">
+                    📊 Total <strong style="color:{level_color};">{len(rows)}</strong> {level_label}
+                    &nbsp;|&nbsp; Klik baris untuk memilih, lalu klik <strong>Lacak Batch Terpilih</strong>
+                </div>
+                """, unsafe_allow_html=True)
+
+            import pandas as pd
+            df = pd.DataFrame(rows)
+
+            # Dataframe dengan selection support
+            event = st.dataframe(
+                df,
+                use_container_width=True,
+                hide_index=True,
+                on_select="rerun",
+                selection_mode="single-row",
+                key=f"df_{level_key}",
+            )
+
+            # Ambil baris yang dipilih
+            selected_rows = event.selection.rows if hasattr(event, 'selection') else []
+            selected_id = None
+            if selected_rows:
+                idx = selected_rows[0]
+                selected_id = rows[idx]["ID Batch"]
+
+            # Preview + Tombol lacak
+            col_prev, col_lacak = st.columns([3, 1])
+            with col_prev:
+                if selected_id:
+                    st.markdown(f"""
+                    <div style="background: rgba(124,58,237,0.1); border: 1px solid rgba(167,139,250,0.3);
+                         border-radius: 10px; padding: 10px 16px; font-size: 0.85rem; color: #C4B5FD;">
+                        ✅ Batch Dipilih: <strong style="color:{level_color}; font-family:monospace;">{selected_id}</strong>
+                    </div>
+                    """, unsafe_allow_html=True)
+                else:
+                    st.markdown("""
+                    <div style="background: rgba(75,63,130,0.08); border: 1px solid rgba(124,58,237,0.1);
+                         border-radius: 10px; padding: 10px 16px; font-size: 0.82rem; color: #6B5EA8;">
+                        ← Klik salah satu baris pada tabel di atas untuk memilih batch
+                    </div>
+                    """, unsafe_allow_html=True)
+
+            with col_lacak:
+                lacak_btn = st.button(
+                    "🔍 Lacak Batch Terpilih",
+                    key=f"lacak_{level_key}",
+                    use_container_width=True,
+                    disabled=(selected_id is None),
+                )
+
+            if lacak_btn and selected_id:
+                st.session_state.browse_trigger_id = selected_id
+                run_traceback(selected_id)
+                st.rerun()
+
 
 # ============================================================
 # TAMPILKAN HASIL TRACEBACK
@@ -614,18 +806,19 @@ if do_trace and search_id.strip():
 if st.session_state.trace_result:
     trace = st.session_state.trace_result
     root_id = st.session_state.trace_root_id
-    
+
     # Hitung ringkasan
     flat_data = flatten_trace(trace)
-    
-    # STATISTIK
+
     total_panen = sum(1 for f in flat_data if f['node'].get('type') == 'PANEN')
     total_lahan = sum(1 for f in flat_data if f['node'].get('type') == 'LAHAN')
-    total_var = sum(1 for f in flat_data if f['node'].get('type') == 'VARIETAS')
-    total_qty = sum(f['node'].get('qty', 0) for f in flat_data if f['node'].get('type') == 'PANEN')
+    total_var   = sum(1 for f in flat_data if f['node'].get('type') == 'VARIETAS')
+    total_qty   = sum(f['node'].get('qty', 0) for f in flat_data if f['node'].get('type') == 'PANEN')
     lahan_bebas = sum(1 for f in flat_data if f['node'].get('type') == 'LAHAN' and f['node'].get('is_bebas_deforestasi'))
-    all_bebas = (lahan_bebas == total_lahan) if total_lahan > 0 else True
-    
+    all_bebas   = (lahan_bebas == total_lahan) if total_lahan > 0 else True
+
+    st.markdown("---")
+
     # Banner status kepatuhan
     if all_bebas:
         st.markdown(f"""
@@ -635,7 +828,7 @@ if st.session_state.trace_result:
             <span style="font-size: 2rem;">✅</span>
             <div>
                 <div style="color: #4ADE80; font-weight: 700; font-size: 1rem;">
-                    LULUS UJI KETERTELUSURAN — Bebas Deforestasi
+                    LULUS UJI KETERTELUSURAN - Bebas Deforestasi
                 </div>
                 <div style="color: #86EFAC; font-size: 0.8rem;">
                     Semua {total_lahan} lahan dalam rantai pasok ini bebas dari kawasan hutan.
@@ -651,7 +844,7 @@ if st.session_state.trace_result:
             <span style="font-size: 2rem;">⚠️</span>
             <div>
                 <div style="color: #F87171; font-weight: 700; font-size: 1rem;">
-                    PERINGATAN — Ada Lahan di Kawasan Hutan
+                    PERINGATAN - Ada Lahan di Kawasan Hutan
                 </div>
                 <div style="color: #FCA5A5; font-size: 0.8rem;">
                     {total_lahan - lahan_bebas} dari {total_lahan} lahan terindikasi masuk kawasan hutan.
@@ -659,99 +852,200 @@ if st.session_state.trace_result:
             </div>
         </div>
         """, unsafe_allow_html=True)
-    
+
     # METRIK RINGKASAN
     col_m1, col_m2, col_m3, col_m4, col_m5 = st.columns(5)
-    with col_m1:
-        st.metric("📊 Total Node", len(flat_data))
-    with col_m2:
-        st.metric("🌾 Batch Panen", total_panen)
-    with col_m3:
-        st.metric("🗺️ Lahan", total_lahan)
-    with col_m4:
-        st.metric("🌱 Varietas", total_var)
-    with col_m5:
-        st.metric("⚖️ Qty Hulu", f"{total_qty:,} Kg")
-    
-    st.markdown('<hr style="border: none; height: 1px; background: linear-gradient(90deg, transparent, rgba(124,58,237,0.3), transparent); margin: 16px 0;">', unsafe_allow_html=True)
-    
-    # VISUALISASI POHON
-    col_tree, col_dl = st.columns([3, 1])
-    
-    with col_tree:
-        st.markdown(f"""
-        <div style="font-family: 'Space Grotesk', sans-serif; font-size: 1.1rem; font-weight: 600; 
-             color: #A78BFA; margin-bottom: 16px;">
-            🌳 Pohon Ketertelusuran — ID: <span style="color: #C4B5FD;">{root_id}</span>
-        </div>
-        """, unsafe_allow_html=True)
-        
-        st.markdown('<div class="traceback-container">', unsafe_allow_html=True)
-        tree_html = render_trace_recursive(trace, 0)
-        st.markdown(tree_html, unsafe_allow_html=True)
-        st.markdown('</div>', unsafe_allow_html=True)
-    
-    with col_dl:
-        st.markdown("""
-        <div style="font-family: 'Space Grotesk', sans-serif; font-size: 1rem; font-weight: 600; 
-             color: #A78BFA; margin-bottom: 16px;">
-            📄 Export Laporan
-        </div>
-        """, unsafe_allow_html=True)
-        
-        # Generate PDF
-        with st.spinner("Menyiapkan PDF..."):
-            pdf_bytes = generate_pdf_report(trace, root_id)
-        
-        if pdf_bytes:
-            filename = f"Riwayat_{root_id}_{datetime.now().strftime('%Y%m%d_%H%M')}.pdf"
-            st.download_button(
-                label="📥 Download Riwayat (PDF)",
-                data=pdf_bytes,
-                file_name=filename,
-                mime="application/pdf",
-                key="btn_download_pdf"
-            )
+    with col_m1: st.metric("📊 Total Node", len(flat_data))
+    with col_m2: st.metric("🌾 Batch Panen", total_panen)
+    with col_m3: st.metric("🗺️ Lahan", total_lahan)
+    with col_m4: st.metric("🌱 Varietas", total_var)
+    with col_m5: st.metric("⚖️ Qty Hulu", f"{total_qty:,} Kg")
+
+    st.markdown('<hr style="border:none; height:1px; background:linear-gradient(90deg,transparent,rgba(124,58,237,0.3),transparent); margin:16px 0;">', unsafe_allow_html=True)
+
+    # --------------------------------------------------------
+    # TABEL RINGKASAN (View Mode Baru)
+    # --------------------------------------------------------
+    view_tree, view_table = st.tabs(["🌳 Pohon Rekursif", "📊 Tampilan Tabel"])
+
+    with view_tree:
+        col_tree, col_dl = st.columns([3, 1])
+
+        with col_tree:
             st.markdown(f"""
-            <div style="background: rgba(5,150,105,0.08); border: 1px solid rgba(52,211,153,0.2); 
-                 border-radius: 10px; padding: 12px; font-size: 0.78rem; color: #86EFAC; margin-top: 8px;">
-                <div style="font-weight: 600; color: #4ADE80; margin-bottom: 6px;">📋 Isi Laporan PDF:</div>
-                <div>• Tabel ketertelusuran lengkap</div>
-                <div>• Status bebas deforestasi tiap lahan</div>
-                <div>• Kuantitas di setiap tingkat</div>
-                <div>• Timestamp transaksi blockchain</div>
-                <div>• Ringkasan statistik kepatuhan</div>
+            <div style="font-family: 'Space Grotesk', sans-serif; font-size: 1.1rem; font-weight: 600;
+                 color: #A78BFA; margin-bottom: 16px;">
+                🌳 Pohon Ketertelusuran - ID: <span style="color: #C4B5FD;">{root_id}</span>
             </div>
             """, unsafe_allow_html=True)
-        else:
-            st.warning("⚠️ fpdf2 tidak tersedia. Install: `pip install fpdf2`")
-        
-        # Tampilkan data mentah JSON
-        with st.expander("🔧 Data Mentah (JSON)"):
-            import json
-            
-            def make_json_safe(obj):
-                if isinstance(obj, dict):
-                    return {k: make_json_safe(v) for k, v in obj.items()}
-                elif isinstance(obj, list):
-                    return [make_json_safe(i) for i in obj]
-                elif isinstance(obj, bytes):
-                    return obj.hex()
-                else:
-                    return obj
-            
-            st.code(json.dumps(make_json_safe(trace), indent=2, ensure_ascii=False), language='json')
 
-elif not do_trace:
-    # Tampilan placeholder
+            st.markdown('<div class="traceback-container">', unsafe_allow_html=True)
+            tree_html = render_trace_recursive(trace, 0)
+            st.markdown(tree_html, unsafe_allow_html=True)
+            st.markdown('</div>', unsafe_allow_html=True)
+
+        with col_dl:
+            st.markdown("""
+            <div style="font-family: 'Space Grotesk', sans-serif; font-size: 1rem; font-weight: 600;
+                 color: #A78BFA; margin-bottom: 16px;">📄 Export Laporan</div>
+            """, unsafe_allow_html=True)
+
+            with st.spinner("Menyiapkan PDF..."):
+                pdf_bytes = generate_pdf_report(trace, root_id)
+
+            if pdf_bytes:
+                filename = f"Riwayat_{root_id}_{datetime.now().strftime('%Y%m%d_%H%M')}.pdf"
+                st.download_button(
+                    label="📥 Download Riwayat (PDF)",
+                    data=pdf_bytes,
+                    file_name=filename,
+                    mime="application/pdf",
+                    key="btn_download_pdf"
+                )
+                st.markdown("""
+                <div style="background: rgba(5,150,105,0.08); border: 1px solid rgba(52,211,153,0.2);
+                     border-radius: 10px; padding: 12px; font-size: 0.78rem; color: #86EFAC; margin-top: 8px;">
+                    <div style="font-weight: 600; color: #4ADE80; margin-bottom: 6px;">📋 Isi Laporan PDF:</div>
+                    <div>• Tabel ketertelusuran lengkap</div>
+                    <div>• Status bebas deforestasi tiap lahan</div>
+                    <div>• Kuantitas di setiap tingkat</div>
+                    <div>• Timestamp transaksi blockchain</div>
+                    <div>• Ringkasan statistik kepatuhan</div>
+                </div>
+                """, unsafe_allow_html=True)
+            else:
+                st.warning("⚠️ fpdf2 tidak tersedia. Install: `pip install fpdf2`")
+
+            with st.expander("🔧 Data Mentah (JSON)"):
+                import json
+                def make_json_safe(obj):
+                    if isinstance(obj, dict):   return {k: make_json_safe(v) for k, v in obj.items()}
+                    elif isinstance(obj, list):  return [make_json_safe(i) for i in obj]
+                    elif isinstance(obj, bytes): return obj.hex()
+                    else: return obj
+                st.code(json.dumps(make_json_safe(trace), indent=2, ensure_ascii=False), language='json')
+
+    with view_table:
+        # --------------------------------------------------------
+        # Tabel ringkasan dari flatten_trace
+        # --------------------------------------------------------
+        st.markdown(f"""
+        <div style="font-family: 'Space Grotesk', sans-serif; font-size: 1.1rem; font-weight: 600;
+             color: #A78BFA; margin-bottom: 12px;">
+            📊 Tabel Ketertelusuran — ID: <span style="color: #C4B5FD;">{root_id}</span>
+        </div>
+        """, unsafe_allow_html=True)
+
+        # Filter berdasarkan tipe/tahapan
+        all_types = list({f['node'].get('type', 'UNKNOWN') for f in flat_data})
+        type_label_map = {
+            'AGREGASI': 'Agregasi (Pengepul/Perusahaan)',
+            'PANEN':    'Batch Panen',
+            'LAHAN':    'Lahan',
+            'VARIETAS': 'Varietas',
+        }
+        filter_options = ["Semua Tahapan"] + [type_label_map.get(t, t) for t in sorted(all_types) if t in type_label_map]
+
+        col_filter, col_info = st.columns([2, 3])
+        with col_filter:
+            selected_filter = st.selectbox(
+                "🔽 Filter Tahapan:",
+                options=filter_options,
+                key="tabel_filter_tipe"
+            )
+
+        # Bangun tabel berdasarkan filter
+        import pandas as pd
+        table_rows = []
+        reverse_label = {v: k for k, v in type_label_map.items()}
+        filter_type = reverse_label.get(selected_filter)
+
+        for item in flat_data:
+            node = item['node']
+            node_type = node.get('type', 'UNKNOWN')
+
+            if filter_type and node_type != filter_type:
+                continue
+
+            indent_prefix = "  " * item['indent']
+            ts = node.get('timestamp', 0)
+            ts_str = datetime.fromtimestamp(ts).strftime('%d %b %Y, %H:%M') if ts and ts > 0 else '-'
+
+            # Bangun baris berdasarkan tipe
+            if node_type == 'AGREGASI':
+                tingkat = node.get('tingkat', 0)
+                tahapan = TINGKAT_PROSES_MAP.get(tingkat, f"Level {tingkat}")
+                table_rows.append({
+                    "Tahapan": tahapan,
+                    "ID Batch / Aset": indent_prefix + node.get('id', '-'),
+                    "Qty (Kg)": f"{node.get('qty', 0):,}",
+                    "Parameter Mutu": node.get('mutu', '-')[:50],
+                    "Status": "Diagregasi" if node.get('is_aggregated') else "Tersedia",
+                    "Pemilik": f"{node.get('pemilik','')[:10]}..." if node.get('pemilik') else '-',
+                    "Waktu": ts_str,
+                    "Bebas Defor.": "-",
+                })
+            elif node_type == 'PANEN':
+                table_rows.append({
+                    "Tahapan": "Batch Panen",
+                    "ID Batch / Aset": indent_prefix + node.get('id', '-'),
+                    "Qty (Kg)": f"{node.get('qty', 0):,}",
+                    "Parameter Mutu": "Fermentasi: " + ("Ya" if node.get('is_fermented') else "Tidak"),
+                    "Status": "Diagregasi" if node.get('is_aggregated') else "Tersedia",
+                    "Pemilik": f"{node.get('petani','')[:10]}..." if node.get('petani') else '-',
+                    "Waktu": ts_str,
+                    "Bebas Defor.": "-",
+                })
+            elif node_type == 'LAHAN':
+                table_rows.append({
+                    "Tahapan": "Lahan",
+                    "ID Batch / Aset": indent_prefix + node.get('id', '-'),
+                    "Qty (Kg)": f"{node.get('luas', 0):,} m2",
+                    "Parameter Mutu": f"STDB: {node.get('no_stdb', '-')}",
+                    "Status": "Terdaftar",
+                    "Pemilik": f"{node.get('petani','')[:10]}..." if node.get('petani') else '-',
+                    "Waktu": ts_str,
+                    "Bebas Defor.": "Ya" if node.get('is_bebas_deforestasi') else "Tidak",
+                })
+            elif node_type == 'VARIETAS':
+                table_rows.append({
+                    "Tahapan": "Varietas Benih",
+                    "ID Batch / Aset": indent_prefix + node.get('id', '-'),
+                    "Qty (Kg)": f"{node.get('masa_edar', 0)} Thn",
+                    "Parameter Mutu": f"SK: {node.get('sk_pelepasan', '-')}",
+                    "Status": "Terdaftar",
+                    "Pemilik": f"{node.get('penangkar','')[:10]}..." if node.get('penangkar') else '-',
+                    "Waktu": ts_str,
+                    "Bebas Defor.": "-",
+                })
+
+        if table_rows:
+            df_trace = pd.DataFrame(table_rows)
+            st.dataframe(df_trace, use_container_width=True, hide_index=True)
+
+            # Download CSV
+            csv = df_trace.to_csv(index=False).encode('utf-8')
+            st.download_button(
+                label="📥 Download Tabel (CSV)",
+                data=csv,
+                file_name=f"Trace_{root_id}_{datetime.now().strftime('%Y%m%d_%H%M')}.csv",
+                mime="text/csv",
+                key="btn_download_csv"
+            )
+        else:
+            st.info("Tidak ada data untuk filter yang dipilih.")
+
+elif not st.session_state.trace_result:
+    # Placeholder
     st.markdown("""
     <div style="text-align: center; padding: 60px 20px; color: #4C3F7A;">
         <div style="font-size: 4rem; margin-bottom: 16px; opacity: 0.5;">🔍</div>
         <div style="font-family: 'Space Grotesk', sans-serif; font-size: 1.2rem; color: #7C6DAE;">
-            Masukkan ID Batch di kolom pencarian dan klik "Lacak"
+            Pilih batch dari tab Browse atau masukkan ID secara manual, lalu klik "Lacak"
         </div>
         <div style="font-size: 0.85rem; margin-top: 8px; color: #4C3F7A;">
             Sistem akan menelusuri seluruh rantai pasok secara rekursif dari hilir ke hulu
         </div>
     </div>
     """, unsafe_allow_html=True)
+

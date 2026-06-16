@@ -17,9 +17,9 @@ GANACHE_RPC = "http://127.0.0.1:7545"
 # ALAMAT SMART CONTRACT (Dari hasil deploy di REMIX IDE - scenario2.json)
 # ============================================================
 CONTRACT_ADDRESSES = {
-    "RoleManager":  "0xDF8E528Eae01282135C084C8d85B069AcB46B2c1",
-    "MasterData":   "0xf0FE187109C84C1EC7dB83401250047dDFf06a8f",
-    "Traceability": "0x645276f7Da2332D4B5e5F3d00AA40364Eaa77367",
+    "RoleManager":  "0x1751E62C35Ac86F7F6DbC68D9c160c821DC743f4",
+    "MasterData":   "0x9eC9453FaDC5E89f9307821c183E0FE731635B5D",
+    "Traceability": "0x0Edbb79A22b888231A2f75f1727FF7AcEf37Bfea",
 }
 
 # ============================================================

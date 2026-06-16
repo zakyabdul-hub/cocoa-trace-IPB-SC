@@ -443,5 +443,87 @@ with col_info:
                     """, unsafe_allow_html=True)
             except Exception as e:
                 st.error(f"Error: {str(e)}")
-    
+
     st.markdown("</div>", unsafe_allow_html=True)
+
+# ============================================================
+# PANEL DAFTAR BATCH PERUSAHAAN PER TINGKATAN (Full Width)
+# ============================================================
+st.markdown("---")
+st.markdown("""
+<div style="font-family: 'Space Grotesk', sans-serif; font-size: 1.2rem; font-weight: 700;
+     color: #FCA5A5; margin-bottom: 16px;">
+    📋 Daftar Batch Perusahaan per Tingkatan
+</div>
+""", unsafe_allow_html=True)
+
+col_ref5, col_cnt5 = st.columns([1, 4])
+with col_ref5:
+    refresh_company = st.button("🔄 Muat / Refresh", key="btn_refresh_company")
+
+tab_gk, tab_gp, tab_pusat = st.tabs([
+    "🏠 GudangKab (Level 1)",
+    "🚢 GudangPelabuhan (Level 2)",
+    "🏛️ Pusat (Level 3)"
+])
+
+def render_company_batch_list(level: int, tab, level_name: str, color: str):
+    """Helper untuk render daftar batch per level di dalam tab."""
+    with tab:
+        if refresh_company or st.session_state.get(f'company_list_{level}_loaded'):
+            if st.session_state.get('ganache_connected'):
+                try:
+                    contracts = st.session_state.contracts
+                    traceability = contracts['Traceability']
+
+                    all_ids = traceability.functions.getBatchIdsByLevel(level).call()
+                    total = traceability.functions.getTotalBatchByLevel(level).call()
+                    st.session_state[f'company_list_{level}_loaded'] = True
+
+                    st.markdown(f"""
+                    <div style="background: rgba(220,38,38,0.06); border: 1px solid rgba(220,38,38,0.15);
+                         border-radius: 10px; padding: 10px 16px; font-size: 0.85rem; color: #FECACA;
+                         margin-bottom: 12px;">
+                        📊 Total Batch {level_name}: <strong style="color: {color}; font-size: 1.1rem;">{total}</strong>
+                    </div>
+                    """, unsafe_allow_html=True)
+
+                    if not all_ids:
+                        st.info(f"📭 Belum ada batch {level_name} yang terdaftar.")
+                    else:
+                        from config import TINGKAT_PROSES_MAP
+                        rows = []
+                        for bid in all_ids:
+                            try:
+                                data = traceability.functions.dataAgregasi(bid).call()
+                                id_b, tingkat, qty, mutu, pemilik, is_agg, ts = data
+                                sumber = traceability.functions.getSumberAgregasi(bid).call()
+                                rows.append({
+                                    "ID Batch": id_b,
+                                    "Tingkat": TINGKAT_PROSES_MAP.get(tingkat, "?"),
+                                    "Total Qty (Kg)": f"{qty:,}",
+                                    "Jml Sumber": len(sumber),
+                                    "Parameter Mutu": mutu[:40] + "..." if len(mutu) > 40 else mutu,
+                                    "Status": "Diagregasi" if is_agg else "Tersedia",
+                                    "Pemilik": f"{pemilik[:8]}...{pemilik[-4:]}",
+                                    "Waktu": datetime.fromtimestamp(ts).strftime("%d %b %Y"),
+                                })
+                            except Exception:
+                                rows.append({"ID Batch": bid, "Tingkat": "-", "Total Qty (Kg)": "-",
+                                             "Jml Sumber": "-", "Parameter Mutu": "-", "Status": "Error",
+                                             "Pemilik": "-", "Waktu": "-"})
+
+                        import pandas as pd
+                        df = pd.DataFrame(rows)
+                        st.dataframe(df, use_container_width=True, hide_index=True)
+                except Exception as e:
+                    st.error(f"❌ Gagal memuat daftar batch {level_name}: {str(e)}")
+            else:
+                st.warning("⚠️ Tidak terhubung ke blockchain.")
+        else:
+            st.info(f"👆 Klik **Muat / Refresh** di atas untuk memuat daftar batch {level_name}.")
+
+render_company_batch_list(1, tab_gk,    "GudangKab",       "#FCA5A5")
+render_company_batch_list(2, tab_gp,    "GudangPelabuhan", "#F87171")
+render_company_batch_list(3, tab_pusat, "Pusat",           "#EF4444")
+

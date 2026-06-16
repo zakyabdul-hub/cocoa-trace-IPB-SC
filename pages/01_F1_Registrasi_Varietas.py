@@ -255,7 +255,7 @@ with col_info:
                 st.error(f"Error: {str(e)}")
     
     st.markdown("</div>", unsafe_allow_html=True)
-    
+
     # Panel Informasi
     st.markdown("""
     <div class="info-card" style="margin-top: 16px;">
@@ -268,7 +268,7 @@ with col_info:
         </ul>
     </div>
     """, unsafe_allow_html=True)
-    
+
     # Tampilkan Akun Penangkar
     st.markdown(f"""
     <div class="info-card" style="margin-top: 12px;">
@@ -281,3 +281,71 @@ with col_info:
         </div>
     </div>
     """, unsafe_allow_html=True)
+
+# ============================================================
+# PANEL DAFTAR SEMUA VARIETAS (Full Width)
+# ============================================================
+st.markdown("---")
+st.markdown("""
+<div style="font-family: 'Space Grotesk', sans-serif; font-size: 1.2rem; font-weight: 700;
+     color: #34D399; margin-bottom: 16px;">
+    📋 Daftar Semua Varietas Terdaftar
+</div>
+""", unsafe_allow_html=True)
+
+col_refresh, col_count = st.columns([1, 4])
+with col_refresh:
+    refresh_var = st.button("🔄 Muat / Refresh Daftar", key="btn_refresh_varietas")
+
+if refresh_var or st.session_state.get('varietas_list_loaded'):
+    if st.session_state.get('ganache_connected'):
+        try:
+            contracts = st.session_state.contracts
+            master_data = contracts['MasterData']
+
+            # Ambil semua ID varietas
+            all_ids = master_data.functions.getAllVarietasIds().call()
+            total = master_data.functions.getTotalVarietas().call()
+
+            st.session_state['varietas_list_loaded'] = True
+
+            with col_count:
+                st.markdown(f"""
+                <div style="background: rgba(5,150,105,0.08); border: 1px solid rgba(52,211,153,0.2);
+                     border-radius: 10px; padding: 10px 16px; font-size: 0.85rem; color: #6EE7B7;">
+                    📊 Total Varietas Terdaftar: <strong style="color: #34D399; font-size: 1.1rem;">{total}</strong>
+                </div>
+                """, unsafe_allow_html=True)
+
+            if not all_ids:
+                st.info("📭 Belum ada varietas yang terdaftar di blockchain.")
+            else:
+                # Ambil detail tiap varietas
+                rows = []
+                for vid in all_ids:
+                    try:
+                        data = master_data.functions.dataVarietas(vid).call()
+                        id_var, sk_pep, masa, penangkar_addr, ts = data
+                        reg_time = datetime.fromtimestamp(ts).strftime("%d %b %Y")
+                        rows.append({
+                            "ID Varietas": id_var,
+                            "SK Pelepasan": sk_pep,
+                            "Masa Edar (Thn)": masa,
+                            "Penangkar": f"{penangkar_addr[:10]}...{penangkar_addr[-4:]}",
+                            "Tgl Daftar": reg_time,
+                        })
+                    except Exception:
+                        rows.append({"ID Varietas": vid, "SK Pelepasan": "Error", "Masa Edar (Thn)": "-", "Penangkar": "-", "Tgl Daftar": "-"})
+
+                import pandas as pd
+                df = pd.DataFrame(rows)
+                st.dataframe(
+                    df,
+                    use_container_width=True,
+                    hide_index=True,
+                )
+        except Exception as e:
+            st.error(f"❌ Gagal memuat daftar varietas: {str(e)}")
+    else:
+        st.warning("⚠️ Tidak terhubung ke blockchain.")
+

@@ -1,0 +1,8 @@
+,//address role manager
+0x1751E62C35Ac86F7F6DbC68D9c160c821DC743f4
+
+//address master data
+0x9eC9453FaDC5E89f9307821c183E0FE731635B5D
+
+//address traceability
+0x0Edbb79A22b888231A2f75f1727FF7AcEf37Bfea
