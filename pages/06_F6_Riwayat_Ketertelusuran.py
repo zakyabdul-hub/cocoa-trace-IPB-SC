@@ -1,4 +1,4 @@
-﻿"""
+"""
 06_F6_Riwayat_Ketertelusuran.py
 Fitur F6: Melihat Riwayat Ketertelusuran (Traceback Rekursif)
 Aktor: Semua Pengguna / Publik
@@ -508,15 +508,18 @@ def generate_pdf_report(trace_tree: dict, root_id: str) -> bytes:
         total_nodes = len(flat)
         total_panen = sum(1 for f in flat if f['node'].get('type') == 'PANEN')
         total_lahan = sum(1 for f in flat if f['node'].get('type') == 'LAHAN')
-        total_varietas = sum(1 for f in flat if f['node'].get('type') == 'VARIETAS')
+        total_luas_lahan = sum(f['node'].get('luas', 0) for f in flat if f['node'].get('type') == 'LAHAN')
         total_qty_panen = sum(f['node'].get('qty', 0) for f in flat if f['node'].get('type') == 'PANEN')
         lahan_bebas = sum(1 for f in flat if f['node'].get('type') == 'LAHAN' and f['node'].get('is_bebas_deforestasi'))
         
+        mutu_batch = trace_tree.get('mutu', '-') if trace_tree.get('type') == 'AGREGASI' else '-'
+        if not mutu_batch or str(mutu_batch).strip() == '': mutu_batch = '-'
+        
         stats = [
             ('Total Node Ketertelusuran', str(total_nodes)),
+            ('Mutu Batch Akhir', str(mutu_batch)),
             ('Jumlah Batch Panen', str(total_panen)),
-            ('Jumlah Lahan Terlibat', str(total_lahan)),
-            ('Jumlah Varietas Terlibat', str(total_varietas)),
+            ('Jumlah Lahan Terlibat', f'{total_luas_lahan:,} m²'),
             ('Total Qty Panen Hulu', f'{total_qty_panen:,} Kg'),
             ('Lahan Bebas Deforestasi', f'{lahan_bebas}/{total_lahan}'),
             ('Status Kepatuhan', 'LULUS' if lahan_bebas == total_lahan else 'TIDAK LULUS'),
