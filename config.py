@@ -58,7 +58,7 @@ TINGKAT_LABEL_MAP = {
 # ============================================================
 BASE_DIR = Path(__file__).parent
 ABI_DIR = BASE_DIR / "ABI"
-SHAPEFILE_PATH = BASE_DIR / "peta_kawasan_hutan.shp"
+
 
 
 def load_abi(contract_name: str) -> list:
