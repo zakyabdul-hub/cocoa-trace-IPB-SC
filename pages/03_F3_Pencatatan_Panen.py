@@ -117,18 +117,56 @@ with col_form:
          color: #4ADE80; margin-bottom: 20px;">📝 Form Pencatatan Batch Panen</div>
     """, unsafe_allow_html=True)
     
-    with st.form("form_panen"):
+    # Tampilkan daftar lahan milik petani ini
+    with st.expander("📊 Lihat Daftar Lahan Saya (F2)", expanded=False):
+        if st.session_state.get('ganache_connected') and st.session_state.get('wallet_address'):
+            try:
+                from web3 import Web3
+                my_addr = Web3.to_checksum_address(st.session_state.wallet_address)
+                lahan_ids = st.session_state.contracts['MasterData'].functions.getLahanByPetani(my_addr).call()
+                if lahan_ids:
+                    data_lahan = []
+                    for lid in lahan_ids:
+                        ldata = st.session_state.contracts['MasterData'].functions.dataLahan(lid).call()
+                        data_lahan.append({
+                            "ID Lahan": ldata[0],
+                            "No STDB": ldata[1],
+                            "Luas (m²)": ldata[4],
+                            "Var Utama": ldata[5]
+                        })
+                    st.dataframe(data_lahan, use_container_width=True, hide_index=True)
+                else:
+                    st.info("Anda belum mendaftarkan lahan apapun.")
+            except Exception as e:
+                st.error(f"Gagal memuat lahan: {e}")
+
+    with st.form("form_pencatatan_panen"):
+        st.markdown("**📋 Data Panen Dasar**")
         id_batch = st.text_input(
             "🏷️ ID Batch Panen Baru *",
             placeholder="BTC-PETANI-001",
             help="ID unik untuk batch panen ini. Format bebas tapi harus unik."
         )
         
-        id_lahan_ref = st.text_input(
+        # Ambil daftar lahan milik petani ini
+        lahan_list = []
+        if st.session_state.get('ganache_connected') and st.session_state.get('wallet_address'):
+            try:
+                from web3 import Web3
+                my_addr = Web3.to_checksum_address(st.session_state.wallet_address)
+                lahan_list = st.session_state.contracts['MasterData'].functions.getLahanByPetani(my_addr).call()
+            except Exception:
+                pass
+                
+        id_lahan_ref = st.selectbox(
             "🗺️ ID Lahan *",
-            placeholder="LHN-POLMAN-001",
-            help="ID lahan yang sudah terdaftar di blockchain (F2)."
+            options=[""] + lahan_list,
+            format_func=lambda x: "Pilih Lahan..." if x == "" else x,
+            help="Pilih lahan Anda yang sudah terdaftar di blockchain (F2).",
+            disabled=len(lahan_list) == 0
         )
+        if not lahan_list:
+            st.caption("⚠️ Anda belum memiliki lahan terdaftar. Silakan daftar di F2.")
         
         col_qty, col_ferm = st.columns([2, 1])
         with col_qty:

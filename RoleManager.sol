@@ -116,11 +116,8 @@ contract RoleManager {
             "Role tidak valid! Role yang tersedia: Penangkar, Petani, Pengepul, Perusahaan. Input: ", _role
         )));
 
-        // Jika pengguna sudah punya peran aktif, nonaktifkan dahulu (immutable pattern)
-        if (userRoles[_user].isActive) {
-            emit RoleDeactivated(_user, userRoles[_user].role, block.timestamp);
-            userRoles[_user].deactivatedAt = block.timestamp;
-        }
+        // Jika pengguna sudah punya peran aktif, tolak transaksi
+        require(!userRoles[_user].isActive, "Wallet address sudah terdaftar dalam sistem");
 
         // Assign peran baru
         userRoles[_user] = UserRoleData({

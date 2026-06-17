@@ -188,10 +188,14 @@ contract Traceability {
         require(_qty > 0, "Jumlah panen harus lebih dari 0");
 
         // Verifikasi Chaining: pastikan ID Lahan terdaftar di MasterData
-        (,,,,,,,, uint256 lahanTimestamp) = masterData.dataLahan(_idLahan);
+        (,,,,,,, address pemilikLahan, uint256 lahanTimestamp) = masterData.dataLahan(_idLahan);
         require(
             lahanTimestamp != 0,
             "ID Lahan fiktif / tidak terdaftar di Master Data!"
+        );
+        require(
+            pemilikLahan == msg.sender,
+            "Bukan pemilik lahan! Anda tidak berhak mencatat panen untuk lahan ini."
         );
 
         // Simpan data batch panen

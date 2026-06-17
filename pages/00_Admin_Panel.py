@@ -144,8 +144,8 @@ with col_assign:
     st.markdown("""
     <div style="font-size: 0.78rem; color: #C4B5FD; background: rgba(124,58,237,0.08); 
          border-radius: 8px; padding: 10px; margin-bottom: 16px;">
-        ℹ️ Jika pengguna sudah memiliki peran aktif, peran lama akan otomatis <strong>dinonaktifkan</strong>
-        dan digantikan peran baru. Riwayat tetap tersimpan di blockchain.
+        ℹ️ Jika pengguna sudah memiliki peran aktif, maka tidak akan bisa mendaftarkan peran baru sebelum dinonaktfikan.
+         Riwayat tetap tersimpan di blockchain.
     </div>
     """, unsafe_allow_html=True)
 
@@ -187,6 +187,16 @@ with col_assign:
                     w3 = st.session_state.w3
                     contracts = st.session_state.contracts
                     role_manager = contracts['RoleManager']
+
+                    # Pre-check: Apakah user sudah punya peran aktif?
+                    try:
+                        role_data = role_manager.functions.getRoleData(checksum).call()
+                        is_active = role_data[1]
+                        if is_active:
+                            st.error("❌ Wallet address ini sudah terdaftar dan memiliki peran aktif! Harap nonaktifkan peran lama terlebih dahulu.")
+                            st.stop()
+                    except Exception:
+                        pass
 
                     contract_func = role_manager.functions.assignRole(checksum, selected_role)
                     result = build_transaction(
@@ -380,7 +390,7 @@ with col_info:
         <ul style="margin: 0; padding-left: 16px; line-height: 1.8;">
             <li>Role valid: Penangkar, Petani, Pengepul, Perusahaan</li>
             <li>Satu wallet hanya bisa memiliki satu peran aktif</li>
-            <li>Peran lama <strong>tidak dihapus</strong> saat di-assign ulang, hanya dinonaktifkan</li>
+            <li>Pengguna yang sudah memiliki peran aktif <strong>tidak dapat</strong> di-assign peran baru. Anda harus menonaktifkannya terlebih dahulu.</li>
             <li>Peran yang dinonaktifkan tidak bisa mengakses fitur apapun</li>
             <li>Semua perubahan peran tercatat sebagai event di blockchain</li>
         </ul>

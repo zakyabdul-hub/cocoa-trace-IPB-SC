@@ -171,14 +171,59 @@ with col_form:
     # BAGIAN 2: Pilih Batch Panen Sumber
     st.markdown("**🌾 Pilih Batch Panen Sumber**")
     st.caption("Tambahkan ID Batch Panen satu per satu dan validasi sebelum submit.")
+
+    # Tampilkan tabel Batch Panen Tersedia
+    with st.expander("📊 Lihat Daftar Batch Panen Tersedia (F3)", expanded=False):
+        if st.session_state.get('ganache_connected'):
+            try:
+                traceability = st.session_state.contracts['Traceability']
+                all_ids = traceability.functions.getAllHarvestBatchIds().call()
+                data_batch = []
+                for bid in all_ids:
+                    try:
+                        bdata = traceability.functions.getHarvestBatchDetail(bid).call()
+                        if not bdata[5]: # Belum diagregasi
+                            data_batch.append({
+                                "ID Batch": bdata[0],
+                                "ID Lahan": bdata[1],
+                                "Jumlah (Kg)": bdata[2],
+                                "Fermentasi": "Ya" if bdata[3] else "Tidak"
+                            })
+                    except Exception:
+                        pass
+                if data_batch:
+                    st.dataframe(data_batch, use_container_width=True, hide_index=True)
+                else:
+                    st.info("Tidak ada batch panen yang tersedia (semua sudah diagregasi).")
+            except Exception as e:
+                st.error(f"Gagal memuat batch panen: {e}")
     
+    # Ambil daftar batch panen yang tersedia (belum diagregasi) dari blockchain
+    available_batches = []
+    if st.session_state.get('ganache_connected'):
+        try:
+            traceability = st.session_state.contracts['Traceability']
+            all_ids = traceability.functions.getAllHarvestBatchIds().call()
+            for bid in all_ids:
+                try:
+                    data = traceability.functions.getHarvestBatchDetail(bid).call()
+                    # data = (id_batch, id_lahan, qty, is_fermented, petani, is_aggregated, timestamp)
+                    if not data[5] and bid not in st.session_state.selected_batches:  # is_aggregated == False
+                        available_batches.append(bid)
+                except Exception:
+                    pass
+        except Exception:
+            pass
+            
     col_add, col_btn = st.columns([4, 1])
     with col_add:
-        new_batch_input = st.text_input(
+        new_batch_input = st.selectbox(
             "Tambah ID Batch Panen",
-            placeholder="BTC-PETANI-001",
+            options=[""] + available_batches,
+            format_func=lambda x: "Pilih Batch Panen Tersedia..." if x == "" else x,
             key="new_batch_add",
-            label_visibility="collapsed"
+            label_visibility="collapsed",
+            disabled=len(available_batches) == 0
         )
     with col_btn:
         if st.button("➕ Tambah", key="btn_tambah_batch"):

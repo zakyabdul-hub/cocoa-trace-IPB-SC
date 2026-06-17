@@ -184,6 +184,27 @@ with col_form:
              color: #38BDF8; margin-bottom: 20px;">📝 Form Registrasi Lahan</div>
     """, unsafe_allow_html=True)
     
+    # Tampilkan daftar varietas yang sudah terdaftar
+    with st.expander("📊 Lihat Daftar Varietas Terdaftar (F1)", expanded=False):
+        if st.session_state.get('ganache_connected'):
+            try:
+                varietas_ids = st.session_state.contracts['MasterData'].functions.getAllVarietasIds().call()
+                if varietas_ids:
+                    data_var = []
+                    for vid in varietas_ids:
+                        vdata = st.session_state.contracts['MasterData'].functions.dataVarietas(vid).call()
+                        data_var.append({
+                            "ID Varietas": vdata[0],
+                            "SK Pelepasan": vdata[1],
+                            "Masa Edar": vdata[2],
+                            "Keterangan": vdata[4]
+                        })
+                    st.dataframe(data_var, use_container_width=True, hide_index=True)
+                else:
+                    st.info("Belum ada varietas yang terdaftar.")
+            except Exception as e:
+                st.error(f"Gagal memuat varietas: {e}")
+
     with st.form("form_registrasi_lahan"):
         st.markdown("**📋 Informasi Dasar Lahan**")
         col_id1, col_id2 = st.columns(2)
@@ -233,18 +254,33 @@ with col_form:
         )
         
         st.markdown("**🌱 Varietas Benih yang Digunakan**")
+        
+        # Ambil daftar varietas dari blockchain
+        varietas_list = []
+        if st.session_state.get('ganache_connected'):
+            try:
+                varietas_list = st.session_state.contracts['MasterData'].functions.getAllVarietasIds().call()
+            except Exception:
+                pass
+                
         col_var1, col_var2 = st.columns(2)
         with col_var1:
-            id_var1 = st.text_input(
+            id_var1 = st.selectbox(
                 "🌱 ID Varietas Utama *",
-                placeholder="VAR-LINDAK-001",
-                help="Harus terdaftar di MasterData oleh Penangkar"
+                options=[""] + varietas_list,
+                format_func=lambda x: "Pilih Varietas..." if x == "" else x,
+                help="Harus terdaftar di MasterData oleh Penangkar",
+                disabled=len(varietas_list) == 0,
             )
+            if not varietas_list:
+                st.caption("⚠️ Belum ada Varietas terdaftar di F1")
         with col_var2:
-            id_var2 = st.text_input(
+            id_var2 = st.selectbox(
                 "🌿 ID Varietas Opsional",
-                placeholder="(Kosongkan jika tidak ada)",
-                help="Varietas benih kedua (opsional)"
+                options=[""] + varietas_list,
+                format_func=lambda x: "(Kosongkan jika tidak ada)" if x == "" else x,
+                help="Varietas benih kedua (opsional)",
+                disabled=len(varietas_list) == 0,
             )
         
         st.markdown("---")

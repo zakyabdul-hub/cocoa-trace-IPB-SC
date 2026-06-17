@@ -251,14 +251,56 @@ with col_form:
     
     # Pilih Batch Sumber
     st.markdown(f"**📥 Pilih Batch Sumber ({sumber_names.get(expected_prev_level, '?')})**")
-    
+
+    with st.expander(f"📊 Lihat Daftar Batch {sumber_names.get(expected_prev_level, '?')} Tersedia", expanded=False):
+        if st.session_state.get('ganache_connected'):
+            try:
+                traceability = st.session_state.contracts['Traceability']
+                all_ids = traceability.functions.getBatchIdsByLevel(expected_prev_level).call()
+                data_batch = []
+                for bid in all_ids:
+                    try:
+                        bdata = traceability.functions.dataAgregasi(bid).call()
+                        if not bdata[5]: # Belum diagregasi
+                            data_batch.append({
+                                "ID Batch": bdata[0],
+                                "Total Qty (Kg)": bdata[2],
+                                "Parameter Mutu": bdata[3]
+                            })
+                    except Exception:
+                        pass
+                if data_batch:
+                    st.dataframe(data_batch, use_container_width=True, hide_index=True)
+                else:
+                    st.info(f"Tidak ada batch {sumber_names.get(expected_prev_level, '?')} yang tersedia.")
+            except Exception as e:
+                st.error(f"Gagal memuat batch sumber: {e}")
+    # Ambil daftar batch sumber yang tersedia
+    available_sources = []
+    if st.session_state.get('ganache_connected'):
+        try:
+            traceability = st.session_state.contracts['Traceability']
+            all_ids = traceability.functions.getBatchIdsByLevel(expected_prev_level).call()
+            for bid in all_ids:
+                try:
+                    data = traceability.functions.dataAgregasi(bid).call()
+                    # data = (idBatchBaru, tingkat, totalQty, parameterMutu, pemilik, isAggregated, timestamp)
+                    if not data[5] and bid not in st.session_state.company_batches: # isAggregated == False
+                        available_sources.append(bid)
+                except Exception:
+                    pass
+        except Exception:
+            pass
+
     col_add, col_btn = st.columns([4, 1])
     with col_add:
-        new_source = st.text_input(
+        new_source = st.selectbox(
             "ID Batch Sumber",
-            placeholder=f"ID Batch dari tingkat sebelumnya",
+            options=[""] + available_sources,
+            format_func=lambda x: f"Pilih Batch {sumber_names.get(expected_prev_level, '?')} Tersedia..." if x == "" else x,
             key="new_source",
-            label_visibility="collapsed"
+            label_visibility="collapsed",
+            disabled=len(available_sources) == 0
         )
     with col_btn:
         if st.button("➕", key="btn_add_source"):
