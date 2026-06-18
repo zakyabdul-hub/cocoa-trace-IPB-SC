@@ -621,6 +621,7 @@ def run_traceback(batch_id: str):
         return
 
     st.session_state.trace_root_id = batch_id
+    st.session_state.trace_error = None
     with st.spinner(f"🔄 Menelusuri rantai pasok untuk `{batch_id}`..."):
         try:
             contracts = st.session_state.contracts
@@ -628,12 +629,12 @@ def run_traceback(batch_id: str):
                 batch_id, contracts, depth=0, max_depth=25
             )
             if trace_result.get('type') in ['UNKNOWN', 'ERROR']:
-                st.error(f"❌ ID `{batch_id}` tidak ditemukan di blockchain.")
+                st.session_state.trace_error = f"❌ ID `{batch_id}` tidak ditemukan di blockchain."
                 st.session_state.trace_result = None
             else:
                 st.session_state.trace_result = trace_result
         except Exception as e:
-            st.error(f"❌ Error saat traceback: {str(e)}")
+            st.session_state.trace_error = f"❌ Error saat traceback: {str(e)}"
             st.session_state.trace_result = None
 
 
@@ -805,6 +806,15 @@ with tab_browse:
 # ============================================================
 # TAMPILKAN HASIL TRACEBACK
 # ============================================================
+if st.session_state.get('trace_error'):
+    st.markdown(f"""
+    <div style="background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.4); 
+         border-radius: 10px; padding: 16px; margin-top: 24px;">
+        <div style="color: #F87171; font-weight: 600; font-size: 1.1rem;">{st.session_state.trace_error}</div>
+        <div style="color: #FCA5A5; font-size: 0.85rem; margin-top: 4px;">Pastikan Anda memasukkan ID yang valid dan sudah tercatat di blockchain.</div>
+    </div>
+    """, unsafe_allow_html=True)
+
 if st.session_state.trace_result:
     trace = st.session_state.trace_result
     root_id = st.session_state.trace_root_id
