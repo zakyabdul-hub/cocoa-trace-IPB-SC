@@ -424,8 +424,8 @@ def generate_pdf_report(trace_tree: dict, root_id: str) -> bytes:
         pdf.set_fill_color(70, 35, 10)
         pdf.set_text_color(255, 255, 255)
         
-        col_widths = [45, 30, 25, 30, 30, 30]
-        headers = ['ID Aset', 'Tipe', 'Qty (Kg)', 'Timestamp', 'Bebas Defor.', 'Status']
+        col_widths = [45, 25, 25, 30, 35, 30]
+        headers = ['ID Aset', 'Tipe', 'Qty (Kg)', 'Timestamp', 'No STDB', 'Titik Koordinat']
         
         for i, (header, width) in enumerate(zip(headers, col_widths)):
             pdf.cell(width, 8, header, border=1, align='C', fill=True)
@@ -458,21 +458,9 @@ def generate_pdf_report(trace_tree: dict, root_id: str) -> bytes:
             ts = node.get('timestamp', 0)
             ts_val = datetime.fromtimestamp(ts).strftime('%d/%m/%Y %H:%M') if ts and ts > 0 else '-'
             
-            # Bebas Deforestasi
-            if node_type == 'LAHAN':
-                bebas = 'YA' if node.get('is_bebas_deforestasi') else 'TIDAK'
-            else:
-                bebas = '-'
-            
-            # Status
-            if 'is_aggregated' in node:
-                status = 'Diagregasi' if node['is_aggregated'] else 'Tersedia'
-            elif node_type == 'VARIETAS':
-                status = 'Terdaftar'
-            elif node_type == 'LAHAN':
-                status = 'Terdaftar'
-            else:
-                status = '-'
+            # STDB dan Koordinat
+            stdb_val = node.get('no_stdb', '-') if node_type == 'LAHAN' else '-'
+            koor_val = node.get('koordinat', '-') if node_type == 'LAHAN' else '-'
             
             # Warna baris berdasarkan tipe
             color_map = {
@@ -485,11 +473,22 @@ def generate_pdf_report(trace_tree: dict, root_id: str) -> bytes:
             pdf.set_fill_color(r, g, b)
             pdf.set_text_color(40, 30, 20)
             
-            values = [id_val, type_val, qty_val, ts_val, bebas, status]
+            values = [id_val, type_val, qty_val, ts_val, stdb_val, koor_val]
             fill = node_type in color_map
             
-            for val, width in zip(values, col_widths):
-                pdf.cell(width, 7, str(val), border=1, fill=fill)
+            for i, (val, width) in enumerate(zip(values, col_widths)):
+                link_url = ""
+                # Jika kolom adalah Titik Koordinat dan nilainya valid
+                if headers[i] == 'Titik Koordinat' and val != '-':
+                    link_url = f"https://www.google.com/maps/search/?api=1&query={val}"
+                    pdf.set_text_color(0, 0, 255)
+                    
+                pdf.cell(width, 7, str(val), border=1, fill=fill, link=link_url)
+                
+                # Kembalikan warna text normal jika barusan menggambar link
+                if link_url:
+                    pdf.set_text_color(40, 30, 20)
+                    
             pdf.ln()
         
         pdf.ln(8)
