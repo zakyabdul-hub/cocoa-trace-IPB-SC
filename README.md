@@ -54,10 +54,22 @@ Cacao_trace_phyton/
 ├── create_shapefile_simulasi.py    # Generator file .shp simulasi
 ├── peta_kawasan_hutan.shp          # (buat dengan script di atas)
 │
+├── contracts/                      # Smart Contract Solidity
+│   ├── RoleManager.sol             # Kontrak manajemen peran pengguna
+│   ├── MasterData.sol              # Kontrak master varietas benih & lahan
+│   └── Traceability.sol            # Kontrak alur ketertelusuran kakao
+│
 ├── ABI/                            # ABI hasil deploy dari REMIX IDE
 │   ├── RoleManager_abi.json
 │   ├── MasterData_abi.json
 │   └── Traceability_abi.json
+│
+├── test/                           # Skenario pengujian (unit testing)
+│   └── CacaoTraceability.test.js
+│
+├── hardhat.config.js               # Konfigurasi Hardhat & Gas Reporter
+├── package.json                    # Dependensi Node.js / Hardhat
+├── gas-report.txt                  # Output laporan statistik penggunaan gas
 │
 ├── pages/                          # Halaman fitur Streamlit
 │   ├── 00_Admin_Panel.py           # Manajemen peran
@@ -110,9 +122,38 @@ Cacao_trace_phyton/
 
 ---
 
+## 🧪 Unit Testing & Gas Statistics (Hardhat)
+
+Untuk melacak statistik konsumsi gas fee dari masing-masing fungsi smart contract, proyek ini dilengkapi dengan **Hardhat** dan **Hardhat Gas Reporter**.
+
+### 1. Prasyarat Pengujian
+- **Node.js** (v16 atau v18+ direkomendasikan)
+- Node dependencies sudah di-install
+
+### 2. Install Dependensi Pengujian
+```bash
+npm install
+```
+
+### 3. Jalankan Pengujian & Hasilkan Laporan Gas
+```bash
+npx hardhat test
+```
+Ini akan mengompilasi kontrak di folder `contracts/` dan menjalankan rangkaian pengujian di folder `test/`. Hasilnya akan otomatis disimpan ke dalam file `gas-report.txt` di root proyek.
+
+### 4. Hasil Rekaman Konsumsi Gas (Ringkasan)
+- **RoleManager** (`assignRole`): ~152,218 gas
+- **MasterData** (`registerVariety`): ~240,164 gas
+- **MasterData** (`registerLand`): ~294,230 gas
+- **Traceability** (`createHarvestBatch`): ~254,585 gas
+- **Traceability** (`createCollectorBatch`): ~331,015 gas
+- **Traceability** (`createCompanyBatch`): ~311,689 gas
+
+---
+
 ## 🛠️ Teknologi
 
-- **Blockchain**: Local EVM (Ganache), Solidity ^0.8.0
+- **Blockchain**: Local EVM (Ganache), Solidity ^0.8.0, Hardhat 2 (Testing & Gas reporting)
 - **Backend**: Python 3.x + Web3.py 6.x
 - **Frontend**: Streamlit
 - **Geospasial**: geopandas + shapely
