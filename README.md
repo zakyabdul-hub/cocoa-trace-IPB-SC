@@ -141,13 +141,17 @@ npx hardhat test
 ```
 Ini akan mengompilasi kontrak di folder `contracts/` dan menjalankan rangkaian pengujian di folder `test/`. Hasilnya akan otomatis disimpan ke dalam file `gas-report.txt` di root proyek.
 
-### 4. Hasil Rekaman Konsumsi Gas (Ringkasan)
-- **RoleManager** (`assignRole`): ~152,218 gas
-- **MasterData** (`registerVariety`): ~240,164 gas
-- **MasterData** (`registerLand`): ~294,230 gas
-- **Traceability** (`createHarvestBatch`): ~254,585 gas
-- **Traceability** (`createCollectorBatch`): ~331,015 gas
-- **Traceability** (`createCompanyBatch`): ~311,689 gas
+### 4. Hasil Rekaman Konsumsi Gas (Simulasi Multi-call)
+Tabel statistik gas setelah menjalankan pengujian otomatis dengan minimal 10 kali panggilan untuk mendapatkan rentang biaya eksekusi:
+
+| Kontrak | Fungsi / Method | Min Gas | Max Gas | Avg Gas | Jumlah Panggilan |
+|---|---|---|---|---|---|
+| **RoleManager** | `assignRole` | 130.037 | 157.323 | 139.520 | 14 |
+| **MasterData** | `registerVariety` | 205.940 | 240.140 | 208.796 | 12 |
+| **MasterData** | `registerLand` | 260.006 | 294.206 | 261.384 | 25 |
+| **Traceability** | `createHarvestBatch` | 237.461 | 271.661 | 238.844 | 25 |
+| **Traceability** | `createCollectorBatch` | 296.779 | 330.979 | 300.213 | 10 |
+| **Traceability** | `createCompanyBatch` | 288.821 | 323.021 | 291.173 | 30 |
 
 ---
 
