@@ -13,7 +13,6 @@ import urllib3
 from datetime import datetime
 import streamlit as st
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 from config import build_transaction
 
 # Nonaktifkan warning SSL Certificate karena server pemerintah sering unverified
@@ -111,6 +110,16 @@ def cek_status_klhk(lat, lon):
         response.raise_for_status()
         data = response.json()
         
+        if 'error' in data:
+            code = data['error'].get('code', 'Unknown')
+            msg = data['error'].get('message', 'No details')
+            return {
+                'status': 'ERROR',
+                'message': f"⚠️ API KLHK menolak akses (Error {code}: {msg}).",
+                'fungsi_kws': None,
+                'nama_kws': None
+            }
+            
         features = data.get('features', [])
         if len(features) == 0:
             return {
@@ -134,6 +143,58 @@ def cek_status_klhk(lat, lon):
         return {'status': 'ERROR', 'message': '⏳ Timeout: Server KLHK tidak merespons dalam 10 detik. Silakan coba lagi.'}
     except Exception as e:
         return {'status': 'ERROR', 'message': f'⚠️ Gagal terhubung ke server KLHK: {str(e)}'}
+
+def cek_status_lahan_lokal(lat, lon):
+    """
+    Melakukan pengecekan ke file SHP lokal sebagai fallback.
+    """
+    try:
+        import geopandas as gpd
+        from shapely.geometry import Point
+        
+        shp_path = os.path.join(os.path.dirname(__file__), '..', 'forest_zone', 'kawasan_hutan_092017.shp')
+        if not os.path.exists(shp_path):
+            return {'status': 'ERROR', 'message': '⚠️ File SHP lokal tidak ditemukan. Pastikan file SHP berada di folder forest_zone.'}
+        
+        # Bounding box query
+        gdf = gpd.read_file(shp_path, bbox=(lon-0.001, lat-0.001, lon+0.001, lat+0.001))
+        
+        if gdf.empty:
+            return {
+                'status': 'VALID',
+                'message': '✅ Lahan Berada di APL / Luar Kawasan Hutan (Hasil Cek SHP Lokal)',
+                'fungsi_kws': None,
+                'nama_kws': None
+            }
+            
+        point = Point(lon, lat)
+        intersects = gdf.contains(point)
+        matched = gdf[intersects]
+        
+        if matched.empty:
+            return {
+                'status': 'VALID',
+                'message': '✅ Lahan Berada di APL / Luar Kawasan Hutan (Hasil Cek SHP Lokal)',
+                'fungsi_kws': None,
+                'nama_kws': None
+            }
+        else:
+            row = matched.iloc[0]
+            fungsi = str(row.get('legend_in', 'Kawasan Hutan'))
+            nama = str(row.get('namobj', 'Tidak Diketahui'))
+            if nama.lower() == 'none' or nama == '':
+                nama = 'Tidak Diketahui'
+                
+            return {
+                'status': 'INVALID',
+                'message': f"❌ Lahan Terindikasi Masuk Kawasan Hutan: {fungsi} (Hasil Cek SHP Lokal)",
+                'fungsi_kws': fungsi,
+                'nama_kws': nama
+            }
+    except ImportError:
+        return {'status': 'ERROR', 'message': '⚠️ Modul geopandas atau shapely belum terinstall. Hubungi Admin.'}
+    except Exception as e:
+        return {'status': 'ERROR', 'message': f'⚠️ Gagal membaca SHP lokal: {str(e)}'}
 
 # ============================================================
 # HEADER HALAMAN
@@ -207,10 +268,16 @@ with col_form:
     # Tombol Validasi
     if st.button("🌍 Validasi Koordinat Lahan", use_container_width=True):
         with st.spinner("Menghubungi Server Geoportal KLHK..."):
-            klhk_result_state = cek_status_klhk(latitude, longitude)
-            st.session_state['klhk_result'] = klhk_result_state
-            st.session_state['klhk_lat'] = latitude
-            st.session_state['klhk_lon'] = longitude
+            result_state = cek_status_klhk(latitude, longitude)
+            
+        if result_state['status'] == 'ERROR':
+            st.warning(result_state['message'])
+            with st.spinner("⏳ KLHK Error. Beralih memindai data SHP lokal (sekitar 15 detik)..."):
+                result_state = cek_status_lahan_lokal(latitude, longitude)
+                
+        st.session_state['klhk_result'] = result_state
+        st.session_state['klhk_lat'] = latitude
+        st.session_state['klhk_lon'] = longitude
 
     # Tampilkan Hasil Validasi Step 1
     klhk_result = st.session_state.get('klhk_result')
