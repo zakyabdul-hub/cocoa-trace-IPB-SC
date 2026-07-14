@@ -63,7 +63,6 @@ contract Traceability {
 
     struct BatchAgregasi {
         string        idBatchBaru;
-        string[]      idSumber;     // ID batch dari tingkat sebelumnya
         TingkatProses tingkat;
         uint256       totalQty;
         string        parameterMutu;
@@ -79,6 +78,7 @@ contract Traceability {
     // Data utama - query by ID
     mapping(string => BatchPanen)    public dataPanen;
     mapping(string => BatchAgregasi) public dataAgregasi;
+    mapping(string => string[]) private sumberAgregasi;
 
     // Tracker Global - untuk UI: tampilkan semua batch
     // Semua ID batch panen (Level 0 / Petani)
@@ -255,7 +255,6 @@ contract Traceability {
         // Simpan batch agregasi baru
         dataAgregasi[_idBaru] = BatchAgregasi({
             idBatchBaru:   _idBaru,
-            idSumber:      _idSumber,
             tingkat:       TingkatProses.Pengepul,
             totalQty:      _totalQty,
             parameterMutu: "Standar Pengepul",
@@ -263,6 +262,9 @@ contract Traceability {
             isAggregated:  false,
             timestamp:     block.timestamp
         });
+
+        // Simpan sumber secara terpisah
+        sumberAgregasi[_idBaru] = _idSumber;
 
         // Daftarkan ke tracker global (level 0 = Pengepul) dan per pemilik
         batchIdsByLevel[uint256(TingkatProses.Pengepul)].push(_idBaru);
@@ -328,7 +330,6 @@ contract Traceability {
         // Simpan batch agregasi perusahaan
         dataAgregasi[_idBaru] = BatchAgregasi({
             idBatchBaru:   _idBaru,
-            idSumber:      _idSumber,
             tingkat:       _tingkat,
             totalQty:      _totalQty,
             parameterMutu: _mutu,
@@ -336,6 +337,9 @@ contract Traceability {
             isAggregated:  false,
             timestamp:     block.timestamp
         });
+
+        // Simpan sumber secara terpisah
+        sumberAgregasi[_idBaru] = _idSumber;
 
         // Daftarkan ke tracker global per level dan per pemilik
         batchIdsByLevel[uint256(_tingkat)].push(_idBaru);
@@ -416,7 +420,7 @@ contract Traceability {
      * @return string[] Array ID batch sumber
      */
     function getSumberAgregasi(string memory _idBatch) public view returns (string[] memory) {
-        return dataAgregasi[_idBatch].idSumber;
+        return sumberAgregasi[_idBatch];
     }
 
     /**
