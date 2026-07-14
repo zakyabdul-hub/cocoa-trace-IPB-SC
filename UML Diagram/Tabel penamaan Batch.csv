@@ -1,0 +1,21 @@
+﻿No;Entitas;Contoh Format Awal;Penjelasan
+1;Varietas Benih;VAR-[Jenis Varietas]-[MMYY]-[tahun/masa edar];"[Jenis Varietas] = Nama Varietas, diinput oleh user
+[MMYY] = Waktu edar Benih (bulan, tahun)
+[masa edar] = Jumlah Masa Edar Benih"
+2;Lahan Petani;LAHAN-[Nama]-[NO STDB]-[No urut];"[Nama] = Nama Petani
+[NO STDB] = Nomer STDB
+[No urut] = dimulai dari 001, lalu apabila ada yang sama,bisa menjadi 002, dan seterusnya. (karena dalam 1 STDB bisa ada lebih dari 1 lahan)"
+3;Batch Panen;PANEN-[DDMMYY]-[SEQ LAHAN];"[DDMMYY] = Waktu panen
+[SEQ LAHAN] = Batch Lahan yang terkait"
+4;Batch Kelompok Tani (Tk.0);KELTANI-[NAMA KEL TANI]-[DDMMYY]-[No Urut];"[NAMA KEL TANI] = Nama kelompok tani
+[DDMMYY] = Waktu Input
+[No-urut] = dimulai dari 001, dan seterusnya. Diulang dari 001 apabila Nama kelompok tani dan waktu input sudah berbeda"
+5;Batch Pengepul Desa (Tk.1);P1-[Nama]-[DDMMYY]-[No-Urut];"[Nama] =  Nama Entitas
+[DDMMYY] = Waktu Input
+[No-Urut] =  dimulai dari 001, dan seterusnya. Diulang dari 001 apabila Nama kelompok tani dan waktu input sudah berbeda"
+6;Batch Pengepul Kecamatan (Tk.2);P2-[Nama]-[DDMMYY]-[No-Urut];idem (sama dengan data diatasnya)
+7;Batch Pengepul Kabupaten (Tk.3);P3-[Nama]-[DDMMYY]-[No-Urut];idem (sama dengan data diatasnya)
+8;Batch Pengepul Luar Kab (Tk.4);P4-[Nama]-[DDMMYY]-[No-Urut];idem (sama dengan data diatasnya)
+9;Batch Gudang Kabupaten (Tk.5);GUDKAB-[Nama]-[DDMMYY]-[No-Urut];idem (sama dengan data diatasnya)
+10;Batch Gudang Pelabuhan (Tk.6);GUDPEL-[Nama]-[DDMMYY]-[No-Urut];idem (sama dengan data diatasnya)
+11;Batch Pusat/Pengolah/Eksportir (Tk.7);COMPANY-[Nama]-[DDMMYY]-[No-Urut];idem (sama dengan data diatasnya)

@@ -110,8 +110,18 @@
             },
             {
                 "internalType": "string[]",
-                "name": "_idSumber",
+                "name": "_idSumberPanen",
                 "type": "string[]"
+            },
+            {
+                "internalType": "string[]",
+                "name": "_idSumberAgregasi",
+                "type": "string[]"
+            },
+            {
+                "internalType": "enum Traceability.TingkatProses",
+                "name": "_tingkat",
+                "type": "uint8"
             },
             {
                 "internalType": "uint256",
@@ -634,6 +644,30 @@
             }
         ],
         "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "internalType": "enum Traceability.TingkatProses",
+                "name": "_from",
+                "type": "uint8"
+            },
+            {
+                "internalType": "enum Traceability.TingkatProses",
+                "name": "_to",
+                "type": "uint8"
+            }
+        ],
+        "name": "isValidRoute",
+        "outputs": [
+            {
+                "internalType": "bool",
+                "name": "",
+                "type": "bool"
+            }
+        ],
+        "stateMutability": "pure",
         "type": "function"
     },
     {

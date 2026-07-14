@@ -45,7 +45,16 @@ contract Traceability {
     IMasterData  public masterData;
 
     // Enum hierarki rantai pasok
-    enum TingkatProses { Pengepul, GudangKab, GudangPelabuhan, Pusat }
+    enum TingkatProses {
+        KelompokTani,       // 0
+        PengepulDesa,       // 1
+        PengepulKecamatan,  // 2
+        PengepulKabupaten,  // 3
+        PengepulLuarKab,    // 4
+        GudangKab,          // 5
+        GudangPelabuhan,    // 6
+        Pusat               // 7
+    }
 
     // ==========================================
     // STRUKTUR DATA
@@ -216,47 +225,130 @@ contract Traceability {
         emit HarvestBatchCreated(_idBatch, _idLahan, _qty, _isFerment, msg.sender, block.timestamp);
     }
 
+    /// @dev Validasi apakah jalur dari tingkat sumber ke tingkat tujuan diperbolehkan
+    function isValidRoute(TingkatProses _from, TingkatProses _to) public pure returns (bool) {
+        uint256 f = uint256(_from);
+        uint256 t = uint256(_to);
+        
+        // Aturan dasar: tidak boleh mundur atau sama
+        if (f >= t) return false;
+        
+        // KelompokTani(0) / PengepulDesa(1) -> PengepulKecamatan(2) atau PengepulKabupaten(3)
+        if (f <= 1) return (t == 2 || t == 3);
+        
+        // PengepulKecamatan(2) -> PengepulKabupaten(3)
+        if (f == 2) return (t == 3);
+        
+        // PengepulKabupaten(3) -> semua level di atasnya (4, 5, 6, 7)
+        if (f == 3) return (t >= 4);
+        
+        // PengepulLuarKab(4) -> level perusahaan (5, 6, 7)
+        if (f == 4) return (t >= 5);
+        
+        // GudangKab(5) -> GudangPelabuhan(6) atau Pusat(7)
+        if (f == 5) return (t >= 6);
+        
+        // GudangPelabuhan(6) -> Pusat(7)
+        if (f == 6) return (t == 7);
+        
+        return false;
+    }
+
+    /// @dev Menggabungkan dua string array di memori
+    function _mergeArrays(string[] memory _arr1, string[] memory _arr2) internal pure returns (string[] memory) {
+        string[] memory merged = new string[](_arr1.length + _arr2.length);
+        uint256 k = 0;
+        for (uint256 i = 0; i < _arr1.length; i++) {
+            merged[k] = _arr1[i];
+            k++;
+        }
+        for (uint256 i = 0; i < _arr2.length; i++) {
+            merged[k] = _arr2[i];
+            k++;
+        }
+        return merged;
+    }
+
     /**
-     * @notice Pengepul menggabungkan banyak Batch Panen menjadi satu Batch Pengepul.
-     * @dev    Batch panen sumber akan dikunci (isAggregated = true) setelah diproses
-     *         untuk mencegah klaim ganda.
+     * @notice Pengepul menggabungkan banyak Batch Panen (L0-L1) atau Agregasi (L2-L4) menjadi satu Batch Pengepul.
+     * @dev    Batch sumber akan dikunci (isAggregated = true) setelah diproses untuk mencegah klaim ganda.
      * @param _idBaru   ID unik untuk batch pengepul baru
-     * @param _idSumber Array ID batch panen yang dikumpulkan
+     * @param _idSumberPanen Array ID batch panen yang dikumpulkan (hanya untuk L0-L1)
+     * @param _idSumberAgregasi Array ID batch agregasi yang dikumpulkan (hanya untuk L2-L4)
+     * @param _tingkat  Tingkat proses batch pengepul ini (0=KelompokTani, 1=PengepulDesa, ..., 4=PengepulLuarKab)
      * @param _totalQty Total kuantitas setelah agregasi
      */
     function createCollectorBatch(
         string memory _idBaru,
-        string[] memory _idSumber,
+        string[] memory _idSumberPanen,
+        string[] memory _idSumberAgregasi,
+        TingkatProses _tingkat,
         uint256 _totalQty
     ) public onlyRole("Pengepul") {
         require(
             dataAgregasi[_idBaru].timestamp == 0,
             "ID Batch Pengepul sudah ada!"
         );
-        require(_idSumber.length > 0, "Array sumber tidak boleh kosong!");
+        require(
+            uint256(_tingkat) <= uint256(TingkatProses.PengepulLuarKab),
+            "Tingkat tidak valid untuk Pengepul! Gunakan createCompanyBatch()"
+        );
+        require(
+            _idSumberPanen.length + _idSumberAgregasi.length > 0,
+            "Minimal 1 sumber diperlukan!"
+        );
         require(_totalQty > 0, "Total kuantitas harus lebih dari 0");
 
-        // Validasi dan kunci setiap batch panen sumber
-        for (uint256 i = 0; i < _idSumber.length; i++) {
-            string memory idPanen = _idSumber[i];
+        // Tingkat 0-1 (KelompokTani dan PengepulDesa) hanya menerima BatchPanen
+        if (uint256(_tingkat) <= 1) {
             require(
-                dataPanen[idPanen].timestamp != 0,
-                "Ada Batch Panen fiktif di dalam Array!"
+                _idSumberAgregasi.length == 0,
+                "KelompokTani/PengepulDesa hanya bisa dari BatchPanen!"
             );
+            for (uint256 i = 0; i < _idSumberPanen.length; i++) {
+                string memory idPanen = _idSumberPanen[i];
+                require(
+                    dataPanen[idPanen].timestamp != 0,
+                    "Ada Batch Panen fiktif di dalam Array!"
+                );
+                require(
+                    !dataPanen[idPanen].isAggregated,
+                    "Gagal: Ada Batch Panen yang sudah diambil pengepul lain!"
+                );
+                dataPanen[idPanen].isAggregated = true;
+            }
+        } else {
+            // Tingkat 2-4 (Kecamatan, Kabupaten, Luar Kabupaten) hanya menerima BatchAgregasi
             require(
-                !dataPanen[idPanen].isAggregated,
-                "Gagal: Ada Batch Panen yang sudah diambil pengepul lain!"
+                _idSumberPanen.length == 0,
+                "Tingkat ini hanya bisa dari BatchAgregasi!"
             );
-
-            // Kunci batch panen agar tidak bisa diklaim ulang
-            dataPanen[idPanen].isAggregated = true;
+            for (uint256 i = 0; i < _idSumberAgregasi.length; i++) {
+                string memory idAsal = _idSumberAgregasi[i];
+                require(
+                    dataAgregasi[idAsal].timestamp != 0,
+                    "Ada Batch agregasi fiktif di dalam Array!"
+                );
+                require(
+                    !dataAgregasi[idAsal].isAggregated,
+                    "Gagal: Batch agregasi sudah diproses ke tingkat berikutnya!"
+                );
+                require(
+                    isValidRoute(dataAgregasi[idAsal].tingkat, _tingkat),
+                    "Jalur rantai pasok tidak valid!"
+                );
+                dataAgregasi[idAsal].isAggregated = true;
+            }
         }
+
+        // Gabungkan sumber
+        string[] memory allSources = _mergeArrays(_idSumberPanen, _idSumberAgregasi);
 
         // Simpan batch agregasi baru
         dataAgregasi[_idBaru] = BatchAgregasi({
             idBatchBaru:   _idBaru,
-            idSumber:      _idSumber,
-            tingkat:       TingkatProses.Pengepul,
+            idSumber:      allSources,
+            tingkat:       _tingkat,
             totalQty:      _totalQty,
             parameterMutu: "Standar Pengepul",
             pemilik:       msg.sender,
@@ -264,21 +356,19 @@ contract Traceability {
             timestamp:     block.timestamp
         });
 
-        // Daftarkan ke tracker global (level 0 = Pengepul) dan per pemilik
-        batchIdsByLevel[uint256(TingkatProses.Pengepul)].push(_idBaru);
+        // Daftarkan ke tracker global dan per pemilik
+        batchIdsByLevel[uint256(_tingkat)].push(_idBaru);
         agregasiBatchByPemilik[msg.sender].push(_idBaru);
 
-        emit CollectorBatchCreated(_idBaru, _idSumber, _totalQty, msg.sender, block.timestamp);
+        emit CollectorBatchCreated(_idBaru, allSources, _totalQty, msg.sender, block.timestamp);
     }
 
     /**
-     * @notice Perusahaan (GudangKab/GudangPelabuhan/Pusat) menggabungkan batch
-     *         dari tingkatan sebelumnya menjadi batch baru di tingkatan yang lebih tinggi.
-     * @dev    Validasi berjenjang memastikan urutan rantai pasok tidak dilangkahi.
-     *         Contoh: GudangPelabuhan (tingkat 2) hanya bisa menarik dari GudangKab (tingkat 1).
+     * @notice Perusahaan (GudangKab/GudangPelabuhan/Pusat) menggabungkan batch dari tingkatan sebelumnya.
+     * @dev    Validasi perutean fleksibel dilakukan melalui fungsi isValidRoute().
      * @param _idBaru   ID unik untuk batch perusahaan baru
      * @param _idSumber Array ID batch dari tingkat sebelumnya
-     * @param _tingkat  Tingkat proses batch ini (1=GudangKab, 2=GudangPelabuhan, 3=Pusat)
+     * @param _tingkat  Tingkat proses batch ini (5=GudangKab, 6=GudangPelabuhan, 7=Pusat)
      * @param _totalQty Total kuantitas setelah agregasi
      * @param _mutu     Parameter mutu yang ditetapkan perusahaan
      */
@@ -296,10 +386,10 @@ contract Traceability {
         require(_idSumber.length > 0, "Array sumber tidak boleh kosong!");
         require(_totalQty > 0, "Total kuantitas harus lebih dari 0");
 
-        // Pastikan tidak input level Pengepul - fungsi ini hanya untuk Perusahaan
+        // Pastikan tingkat perusahaan valid (>= GudangKab)
         require(
-            _tingkat != TingkatProses.Pengepul,
-            "Level Pengepul tidak valid untuk fungsi ini, gunakan createCollectorBatch()"
+            uint256(_tingkat) >= uint256(TingkatProses.GudangKab),
+            "Tingkat tidak valid untuk Perusahaan! Gunakan createCollectorBatch()"
         );
 
         // Validasi, kunci setiap batch sumber, dan pastikan berjenjang
@@ -314,11 +404,10 @@ contract Traceability {
                 "Gagal: Batch sumber sudah diproses ke tingkat berikutnya!"
             );
 
-            // Validasi rantai berjenjang:
-            // Tingkat batch baru harus = tingkat batch sumber + 1
+            // Validasi rantai berjenjang dinamis
             require(
-                uint256(dataAgregasi[idAsal].tingkat) == uint256(_tingkat) - 1,
-                "Urutan rantai pasok tidak valid, tingkatan batch sumber tidak sesuai!"
+                isValidRoute(dataAgregasi[idAsal].tingkat, _tingkat),
+                "Jalur rantai pasok tidak valid!"
             );
 
             // Kunci batch sumber
@@ -368,15 +457,19 @@ contract Traceability {
     /**
      * @notice Mengambil semua ID Batch berdasarkan tingkatan proses.
      * @dev Gunakan ini untuk menampilkan list batch per level di UI:
-     *      - _level = 0 : Semua batch Pengepul
-     *      - _level = 1 : Semua batch Gudang Kabupaten
-     *      - _level = 2 : Semua batch Gudang Pelabuhan
-     *      - _level = 3 : Semua batch Pusat
-     * @param _level Nomor tingkatan (0-3)
+     *      - _level = 0 : Kelompok Tani
+     *      - _level = 1 : Pengepul Desa
+     *      - _level = 2 : Pengepul Kecamatan
+     *      - _level = 3 : Pengepul Kabupaten
+     *      - _level = 4 : Pengepul Luar Kabupaten
+     *      - _level = 5 : Gudang Kabupaten
+     *      - _level = 6 : Gudang Pelabuhan
+     *      - _level = 7 : Pusat
+     * @param _level Nomor tingkatan (0-7)
      * @return string[] Array ID Batch di tingkatan tersebut
      */
     function getBatchIdsByLevel(uint256 _level) public view returns (string[] memory) {
-        require(_level <= uint256(TingkatProses.Pusat), "Level tidak valid! Rentang valid: 0-3");
+        require(_level <= uint256(TingkatProses.Pusat), "Level tidak valid! Rentang valid: 0-7");
         return batchIdsByLevel[_level];
     }
 
@@ -449,7 +542,7 @@ contract Traceability {
      * @dev Untuk array sumber, gunakan getSumberAgregasi() secara terpisah.
      * @param _idBatch ID Batch Agregasi
      * @return idBatchBaru   ID batch ini
-     * @return tingkat       Tingkat proses (0-3)
+     * @return tingkat       Tingkat proses (0-7)
      * @return totalQty      Total kuantitas
      * @return parameterMutu Parameter mutu
      * @return pemilik       Alamat pemilik batch
