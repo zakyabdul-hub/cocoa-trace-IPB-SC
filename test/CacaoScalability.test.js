@@ -83,10 +83,12 @@ describe("Sistem Ketertelusuran Kakao - Scalability Analysis", function () {
         currentIndex++;
       }
 
-      // Jalankan transaksi agregasi pengepul
+      // Jalankan transaksi agregasi pengepul (KelompokTani, level 0)
       const tx = await traceability.connect(pengepul).createCollectorBatch(
         batchId,
         sources,
+        [], // idSumberAgregasi
+        0,  // tingkat KelompokTani (Level 0)
         size * 100
       );
 
@@ -99,14 +101,25 @@ describe("Sistem Ketertelusuran Kakao - Scalability Analysis", function () {
   });
 
   it("Mempersiapkan 77 Batch Pengepul untuk pengujian Perusahaan", async function () {
-    // Kita membutuhkan 77 batch pengepul untuk di-agregasi oleh perusahaan dengan berbagai ukuran (2+5+10+15+20+25 = 77)
+    // Kita membutuhkan 77 batch pengepul Kabupaten (level 3) agar bisa di-agregasikan oleh perusahaan ke GudangKab (level 5)
     // Batch panen yang digunakan adalah BATCH-HARVEST-78 s.d BATCH-HARVEST-154
     console.log("Mempersiapkan 77 batch pengepul untuk test company...");
     for (let i = 1; i <= 77; i++) {
       const harvestIndex = 77 + i;
+      // 1. Agregasi ke KelompokTani (level 0) dari harvest
+      await traceability.connect(pengepul).createCollectorBatch(
+        `BATCH-COLLECTOR-FOR-COMPANY-L0-${i}`,
+        [`BATCH-HARVEST-${harvestIndex}`],
+        [],
+        0, // KelompokTani
+        100
+      );
+      // 2. Agregasi ke Pengepul Kabupaten (level 3) dari level 0
       await traceability.connect(pengepul).createCollectorBatch(
         `BATCH-COLLECTOR-FOR-COMPANY-${i}`,
-        [`BATCH-HARVEST-${harvestIndex}`],
+        [],
+        [`BATCH-COLLECTOR-FOR-COMPANY-L0-${i}`],
+        3, // Pengepul Kabupaten
         100
       );
     }
@@ -126,11 +139,11 @@ describe("Sistem Ketertelusuran Kakao - Scalability Analysis", function () {
         currentIndex++;
       }
 
-      // Jalankan transaksi agregasi perusahaan (GudangKab, level 1)
+      // Jalankan transaksi agregasi perusahaan (GudangKab, level 5)
       const tx = await traceability.connect(perusahaan).createCompanyBatch(
         batchId,
         sources,
-        1, // TingkatProses.GudangKab
+        5, // GudangKab (Level 5)
         size * 100,
         `Mutu Skala ${size}`
       );

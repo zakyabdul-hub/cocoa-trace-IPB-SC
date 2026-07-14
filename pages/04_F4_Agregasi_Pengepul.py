@@ -78,29 +78,53 @@ def check_auth():
 # ============================================================
 # FUNGSI HELPER
 # ============================================================
-def validasi_batch_panen(batch_ids: list) -> dict:
-    """Memvalidasi daftar ID Batch Panen ke blockchain."""
+def validasi_sumber(batch_ids: list, tingkat_tujuan: int) -> dict:
+    """Validasi sumber panen (jika tingkat_tujuan <= 1) atau sumber agregasi (jika tingkat_tujuan >= 2)."""
     if not st.session_state.get('ganache_connected'):
         return {}
-    
     results = {}
     contracts = st.session_state.contracts
+    traceability = contracts['Traceability']
+    
     for bid in batch_ids:
         bid = bid.strip()
         if not bid:
             continue
         try:
-            data = contracts['Traceability'].functions.dataPanen(bid).call()
-            _, _, qty, is_ferm, _, is_agg, ts = data
-            results[bid] = {
-                'exists': ts != 0,
-                'is_aggregated': is_agg,
-                'qty': qty,
-                'is_fermented': is_ferm,
-                'valid': ts != 0 and not is_agg,
-            }
-        except Exception:
-            results[bid] = {'exists': False, 'valid': False}
+            if tingkat_tujuan <= 1:
+                # Sumber harus BatchPanen
+                data = traceability.functions.dataPanen(bid).call()
+                _, _, qty, is_ferm, _, is_agg, ts = data
+                results[bid] = {
+                    'exists': ts != 0,
+                    'is_aggregated': is_agg,
+                    'qty': qty,
+                    'valid': ts != 0 and not is_agg,
+                    'reason': "✅ Valid" if (ts != 0 and not is_agg) else ("sudah diagregasi" if is_agg else "belum terdaftar")
+                }
+            else:
+                # Sumber harus BatchAgregasi
+                data = traceability.functions.dataAgregasi(bid).call()
+                id_b, tingkat_sumber, qty, mutu, pemilik, is_agg, ts = data
+                
+                # Cek validitas route dari tingkat_sumber ke tingkat_tujuan
+                route_valid = traceability.functions.isValidRoute(tingkat_sumber, tingkat_tujuan).call()
+                
+                valid = (ts != 0) and (not is_agg) and route_valid
+                results[bid] = {
+                    'exists': ts != 0,
+                    'is_aggregated': is_agg,
+                    'qty': qty,
+                    'valid': valid,
+                    'reason': (
+                        "✅ Valid" if valid else
+                        "belum terdaftar" if ts == 0 else
+                        "sudah diagregasi" if is_agg else
+                        f"jalur tidak valid (level sumber: {tingkat_sumber})"
+                    )
+                }
+        except Exception as e:
+            results[bid] = {'exists': False, 'valid': False, 'reason': f"Error: {e}"}
     return results
 
 # ============================================================
@@ -110,11 +134,11 @@ st.markdown("""
 <div class="page-header">
     <div style="font-size: 2rem; margin-bottom: 8px;">📦</div>
     <div style="font-family: 'Space Grotesk', sans-serif; font-size: 1.8rem; font-weight: 700; color: #FCD34D;">
-        F4 — Agregasi Batch Pengepul
+        F4 — Agregasi Batch Pengepul (Multi-Level)
     </div>
     <div style="color: #FDE68A; font-size: 0.95rem; margin-top: 8px;">
-        Menggabungkan beberapa Batch Panen dari Petani menjadi satu Batch Pengepul. 
-        Sistem memvalidasi setiap batch (tidak boleh sudah diagregasi/double-spending).
+        Menggabungkan beberapa Batch Panen/Agregasi menjadi satu Batch Pengepul baru (Level 0 s.d 4). 
+        Sistem memvalidasi rute alur rantai pasok secara realtime.
     </div>
     <div style="margin-top: 12px; font-size: 0.75rem; color: #FCD34D;">
         📋 Smart Contract: <code style="background: rgba(245,158,11,0.1); padding: 2px 8px; border-radius: 4px;">Traceability.createCollectorBatch()</code>
@@ -127,12 +151,18 @@ if not check_auth():
     st.stop()
 
 # ============================================================
-# SESSION STATE untuk batch list
+# SESSION STATE untuk batch list & ID Generator
 # ============================================================
 if 'selected_batches' not in st.session_state:
     st.session_state.selected_batches = []
 if 'batch_validation' not in st.session_state:
     st.session_state.batch_validation = {}
+if 'selected_tingkat_pengepul' not in st.session_state:
+    st.session_state.selected_tingkat_pengepul = 0
+if 'generated_id_pengepul' not in st.session_state:
+    st.session_state.generated_id_pengepul = ""
+if 'prefilled_nama_pengepul' not in st.session_state:
+    st.session_state.prefilled_nama_pengepul = ""
 
 # ============================================================
 # LAYOUT
@@ -146,14 +176,62 @@ with col_form:
          color: #FCD34D; margin-bottom: 20px;">📝 Form Agregasi Pengepul</div>
     """, unsafe_allow_html=True)
     
-    # BAGIAN 1: Info Batch Pengepul
+    # BAGIAN 0: Pilih Tingkat Pengepul
+    st.markdown("**📊 Tingkat Proses Agregasi**")
+    tingkat_label_options = {
+        "Kelompok Tani (Level 0)": 0,
+        "Pengepul Desa (Level 1)": 1,
+        "Pengepul Kecamatan (Level 2)": 2,
+        "Pengepul Kabupaten (Level 3)": 3,
+        "Pengepul Luar Kabupaten (Level 4)": 4,
+    }
+    
+    current_tingkat = st.selectbox(
+        "Pilih Tingkatan Batch Baru *",
+        options=list(tingkat_label_options.keys()),
+        index=st.session_state.selected_tingkat_pengepul
+    )
+    tingkat_val = tingkat_label_options[current_tingkat]
+    
+    # Reset jika tingkatan berubah
+    if tingkat_val != st.session_state.selected_tingkat_pengepul:
+        st.session_state.selected_tingkat_pengepul = tingkat_val
+        st.session_state.selected_batches = []
+        st.session_state.batch_validation = {}
+        st.session_state.generated_id_pengepul = ""
+        st.rerun()
+
     st.markdown("**📋 Informasi Batch Pengepul Baru**")
+    col_gen_name, col_gen_date = st.columns(2)
+    with col_gen_name:
+        g_nama = st.text_input("Nama Entitas / Kelompok / Pengepul *", placeholder="Contoh: CV_JAYA_MAJU", key="g_pengepul_nama")
+    with col_gen_date:
+        g_date = st.date_input("Tanggal Input *", value=datetime.today(), key="g_pengepul_date")
+
+    # Dynamic real-time sequence and ID calculation
+    id_batch_baru = ""
+    seq = ""
+    if g_nama.strip():
+        from config import ID_PREFIX
+        from utils import get_next_sequence_batch, generate_agregasi_id, normalize_name
+        prefix = ID_PREFIX[tingkat_val]
+        ddmmyy = g_date.strftime("%d%m%y")
+        search_prefix = f"{prefix}-{normalize_name(g_nama.strip())}-{ddmmyy}-"
+        
+        if st.session_state.get('ganache_connected'):
+            traceability = st.session_state.contracts['Traceability']
+            seq = get_next_sequence_batch(traceability, tingkat_val, search_prefix)
+            id_batch_baru = generate_agregasi_id(prefix, g_nama.strip(), ddmmyy, seq)
+        else:
+            id_batch_baru = f"{prefix}-{normalize_name(g_nama.strip())}-{ddmmyy}-001"
+
     col_id, col_qty = st.columns(2)
     with col_id:
-        id_batch_baru = st.text_input(
-            "🏷️ ID Batch Pengepul Baru *",
-            placeholder="COL-POLMAN-001",
-            help="ID unik untuk batch agregasi pengepul ini"
+        st.text_input(
+            "🏷️ ID Batch Pengepul Baru (Otomatis) *",
+            value=id_batch_baru,
+            disabled=True,
+            help="ID unik untuk batch agregasi pengepul ini yang dihasilkan secara otomatis."
         )
     with col_qty:
         total_qty = st.number_input(
@@ -162,64 +240,60 @@ with col_form:
             max_value=1_000_000,
             value=1000,
             step=50,
-            help="Total bobot kakao yang diaregasi"
+            help="Total bobot kakao setelah diaregasi"
         )
-    
+    if seq:
+        st.caption(f"ℹ️ Nomor Urut Batch terdeteksi di blockchain: **#{seq}**")
+
     st.markdown("---")
     
-    # BAGIAN 2: Pilih Batch Panen Sumber
-    st.markdown("**🌾 Pilih Batch Panen Sumber**")
-    st.caption("Tambahkan ID Batch Panen satu per satu dan validasi sebelum submit.")
+    # BAGIAN 3: Pilih Batch Sumber
+    st.markdown("**🌾 Pilih Batch Sumber**")
+    st.caption("Pilih batch sumber yang valid untuk tingkatan ini dan lakukan validasi.")
 
-    # Tampilkan tabel Batch Panen Tersedia
-    with st.expander("📊 Lihat Daftar Batch Panen Tersedia (F3)", expanded=False):
-        if st.session_state.get('ganache_connected'):
-            try:
-                traceability = st.session_state.contracts['Traceability']
-                all_ids = traceability.functions.getAllHarvestBatchIds().call()
-                data_batch = []
-                for bid in all_ids:
-                    try:
-                        bdata = traceability.functions.getHarvestBatchDetail(bid).call()
-                        if not bdata[5]: # Belum diagregasi
-                            data_batch.append({
-                                "ID Batch": bdata[0],
-                                "ID Lahan": bdata[1],
-                                "Jumlah (Kg)": bdata[2],
-                                "Fermentasi": "Ya" if bdata[3] else "Tidak"
-                            })
-                    except Exception:
-                        pass
-                if data_batch:
-                    st.dataframe(data_batch, use_container_width=True, hide_index=True)
-                else:
-                    st.info("Tidak ada batch panen yang tersedia (semua sudah diagregasi).")
-            except Exception as e:
-                st.error(f"Gagal memuat batch panen: {e}")
-    
-    # Ambil daftar batch panen yang tersedia (belum diagregasi) dari blockchain
+    # Ambil daftar batch sumber yang tersedia berdasarkan level
     available_batches = []
     if st.session_state.get('ganache_connected'):
         try:
             traceability = st.session_state.contracts['Traceability']
-            all_ids = traceability.functions.getAllHarvestBatchIds().call()
-            for bid in all_ids:
-                try:
-                    data = traceability.functions.getHarvestBatchDetail(bid).call()
-                    # data = (id_batch, id_lahan, qty, is_fermented, petani, is_aggregated, timestamp)
-                    if not data[5] and bid not in st.session_state.selected_batches:  # is_aggregated == False
-                        available_batches.append(bid)
-                except Exception:
-                    pass
+            
+            if tingkat_val <= 1:
+                # Sumber harus dari BatchPanen (Level Petani)
+                all_ids = traceability.functions.getAllHarvestBatchIds().call()
+                for bid in all_ids:
+                    try:
+                        bdata = traceability.functions.getHarvestBatchDetail(bid).call()
+                        if not bdata[5] and bid not in st.session_state.selected_batches: # is_aggregated == False
+                            available_batches.append(bid)
+                    except Exception:
+                        pass
+            else:
+                # Sumber harus dari BatchAgregasi
+                # Tentukan level sumber yang valid berdasarkan VALID_ROUTES
+                from config import VALID_ROUTES
+                source_levels = []
+                for lvl, targets in VALID_ROUTES.items():
+                    if tingkat_val in targets:
+                        source_levels.append(lvl)
+                        
+                for s_lvl in source_levels:
+                    all_s_ids = traceability.functions.getBatchIdsByLevel(s_lvl).call()
+                    for bid in all_s_ids:
+                        try:
+                            bdata = traceability.functions.getAgregasiBatchDetail(bid).call()
+                            if not bdata[5] and bid not in st.session_state.selected_batches: # is_aggregated == False
+                                available_batches.append(bid)
+                        except Exception:
+                            pass
         except Exception:
             pass
             
     col_add, col_btn = st.columns([4, 1])
     with col_add:
         new_batch_input = st.selectbox(
-            "Tambah ID Batch Panen",
+            "Tambah Batch Sumber",
             options=[""] + available_batches,
-            format_func=lambda x: "Pilih Batch Panen Tersedia..." if x == "" else x,
+            format_func=lambda x: "Pilih Batch Sumber Tersedia..." if x == "" else x,
             key="new_batch_add",
             label_visibility="collapsed",
             disabled=len(available_batches) == 0
@@ -246,7 +320,7 @@ with col_form:
                         qty_info = f" ({vd.get('qty',0):,} Kg)"
                         st.markdown(f'<span class="batch-chip valid">✅ {bid}{qty_info}</span>', unsafe_allow_html=True)
                     else:
-                        reason = "tidak ada" if not vd.get('exists') else "sudah diagregasi"
+                        reason = vd.get('reason', 'tidak valid')
                         st.markdown(f'<span class="batch-chip invalid">❌ {bid} ({reason})</span>', unsafe_allow_html=True)
                 else:
                     st.markdown(f'<span class="batch-chip">⏳ {bid}</span>', unsafe_allow_html=True)
@@ -264,7 +338,7 @@ with col_form:
         with col_vld:
             if st.button("🔍 Validasi Semua Batch", key="btn_validasi"):
                 with st.spinner("Memvalidasi ke blockchain..."):
-                    results = validasi_batch_panen(st.session_state.selected_batches)
+                    results = validasi_sumber(st.session_state.selected_batches, tingkat_val)
                     st.session_state.batch_validation = results
                     st.rerun()
         with col_clr:
@@ -273,7 +347,7 @@ with col_form:
                 st.session_state.batch_validation = {}
                 st.rerun()
     else:
-        st.info("📋 Belum ada batch panen yang dipilih. Tambahkan ID Batch Panen di atas.")
+        st.info("📋 Belum ada batch sumber yang dipilih. Tambahkan ID Batch di atas.")
     
     st.markdown("---")
     
@@ -304,7 +378,7 @@ with col_form:
         if not id_batch_baru.strip():
             st.error("❌ ID Batch Pengepul wajib diisi.")
         elif len(st.session_state.selected_batches) == 0:
-            st.error("❌ Pilih minimal 1 Batch Panen sebagai sumber.")
+            st.error("❌ Pilih minimal 1 Batch sebagai sumber.")
         elif not st.session_state.get('private_key'):
             st.error("❌ Private Key belum diinput!")
         else:
@@ -316,9 +390,21 @@ with col_form:
                     
                     batch_list = [b.strip() for b in st.session_state.selected_batches]
                     
+                    # Bangun parameter dual source:
+                    # tingkat <= 1 -> panenSources = batch_list, agregasiSources = []
+                    # tingkat >= 2 -> panenSources = [], agregasiSources = batch_list
+                    if tingkat_val <= 1:
+                        panen_sources = batch_list
+                        agregasi_sources = []
+                    else:
+                        panen_sources = []
+                        agregasi_sources = batch_list
+                        
                     contract_func = traceability.functions.createCollectorBatch(
                         id_batch_baru.strip(),
-                        batch_list,
+                        panen_sources,
+                        agregasi_sources,
+                        int(tingkat_val),
                         int(total_qty)
                     )
                     
@@ -337,7 +423,7 @@ with col_form:
                                 <tr><td style="color: #FCD34D; padding: 3px 0;">📦 ID Batch Pengepul</td><td><strong>{id_batch_baru}</strong></td></tr>
                                 <tr><td style="color: #FCD34D; padding: 3px 0;">🌾 Jumlah Batch Sumber</td><td><strong>{len(batch_list)} Batch</strong></td></tr>
                                 <tr><td style="color: #FCD34D; padding: 3px 0;">⚖️ Total Kuantitas</td><td><strong>{total_qty:,} Kg</strong></td></tr>
-                                <tr><td style="color: #FCD34D; padding: 3px 0;">📊 Tingkat Proses</td><td>Pengepul (Level 0)</td></tr>
+                                <tr><td style="color: #FCD34D; padding: 3px 0;">📊 Tingkat Proses</td><td>{current_tingkat}</td></tr>
                                 <tr><td style="color: #FCD34D; padding: 3px 0;">🔗 TX Hash</td>
                                     <td style="font-family: monospace; font-size: 0.7rem;">{result['tx_hash'][:24]}...{result['tx_hash'][-8:]}</td>
                                 </tr>
@@ -347,6 +433,7 @@ with col_form:
                         # Reset state
                         st.session_state.selected_batches = []
                         st.session_state.batch_validation = {}
+                        st.session_state.generated_id_pengepul = ""
                         st.balloons()
                     else:
                         st.error(f"❌ Transaksi Gagal: {result['error']}")
@@ -440,7 +527,7 @@ st.markdown("---")
 st.markdown("""
 <div style="font-family: 'Space Grotesk', sans-serif; font-size: 1.2rem; font-weight: 700;
      color: #FCD34D; margin-bottom: 16px;">
-    📋 Daftar Semua Batch Pengepul (Level 0)
+    📋 Daftar Semua Batch Pengepul (Level 0 s.d 4)
 </div>
 """, unsafe_allow_html=True)
 
@@ -455,64 +542,66 @@ if refresh_pengepul or st.session_state.get('pengepul_list_loaded'):
         try:
             contracts = st.session_state.contracts
             traceability = contracts['Traceability']
-
-            if filter_pengepul_saya and st.session_state.get('wallet_address'):
-                from web3 import Web3
-                my_addr = Web3.to_checksum_address(st.session_state.wallet_address)
-                all_ids = traceability.functions.getMyAgregasiBatches(my_addr).call()
-                # Filter hanya level 0 (Pengepul)
-                filtered = []
-                for bid in all_ids:
-                    try:
-                        data = traceability.functions.dataAgregasi(bid).call()
-                        if data[1] == 0:  # tingkat == 0 (Pengepul)
-                            filtered.append(bid)
-                    except Exception:
-                        pass
-                all_ids = filtered
-                filter_label = "milik wallet Anda"
-            else:
-                all_ids = traceability.functions.getBatchIdsByLevel(0).call()
-                filter_label = "seluruh blockchain"
-
-            total = traceability.functions.getTotalBatchByLevel(0).call()
             st.session_state['pengepul_list_loaded'] = True
+            
+            # Setup 5 tabs untuk tingkatan Pengepul
+            tabs = st.tabs([
+                "Kelompok Tani (L0)", 
+                "Pengepul Desa (L1)", 
+                "Kecamatan (L2)", 
+                "Kabupaten (L3)", 
+                "Luar Kabupaten (L4)"
+            ])
+            
+            for tab_idx, tab in enumerate(tabs):
+                with tab:
+                    if filter_pengepul_saya and st.session_state.get('wallet_address'):
+                        from web3 import Web3
+                        my_addr = Web3.to_checksum_address(st.session_state.wallet_address)
+                        all_ids_raw = traceability.functions.getMyAgregasiBatches(my_addr).call()
+                        all_ids = []
+                        for bid in all_ids_raw:
+                            try:
+                                data = traceability.functions.dataAgregasi(bid).call()
+                                if data[1] == tab_idx:
+                                    all_ids.append(bid)
+                            except Exception:
+                                pass
+                        filter_label = "milik wallet Anda"
+                    else:
+                        all_ids = traceability.functions.getBatchIdsByLevel(tab_idx).call()
+                        filter_label = "seluruh blockchain"
 
-            with col_cnt4:
-                st.markdown(f"""
-                <div style="background: rgba(217,119,6,0.08); border: 1px solid rgba(245,158,11,0.2);
-                     border-radius: 10px; padding: 10px 16px; font-size: 0.85rem; color: #FDE68A;">
-                    📊 Ditampilkan ({filter_label}): <strong style="color: #FCD34D;">{len(all_ids)}</strong>
-                    &nbsp;|&nbsp; Total: <strong>{total}</strong>
-                </div>
-                """, unsafe_allow_html=True)
+                    total = len(all_ids)
+                    
+                    st.caption(f"📊 Ditampilkan ({filter_label}): {total} batch")
+                    
+                    if not all_ids:
+                        st.info(f"📭 Belum ada batch terdaftar di tingkatan ini.")
+                    else:
+                        from config import TINGKAT_PROSES_MAP
+                        rows = []
+                        for bid in all_ids:
+                            try:
+                                data = traceability.functions.dataAgregasi(bid).call()
+                                id_b, tingkat, qty, mutu, pemilik, is_agg, ts = data
+                                sumber = traceability.functions.getSumberAgregasi(bid).call()
+                                rows.append({
+                                    "ID Batch": id_b,
+                                    "Tingkat": TINGKAT_PROSES_MAP.get(tingkat, "?"),
+                                    "Total Qty (Kg)": f"{qty:,}",
+                                    "Jml Sumber": len(sumber),
+                                    "Status": "Diagregasi" if is_agg else "Tersedia",
+                                    "Pemilik": f"{pemilik[:8]}...{pemilik[-4:]}",
+                                    "Waktu": datetime.fromtimestamp(ts).strftime("%d %b %Y"),
+                                })
+                            except Exception:
+                                rows.append({"ID Batch": bid, "Tingkat": "-", "Total Qty (Kg)": "-",
+                                             "Jml Sumber": "-", "Status": "Error", "Pemilik": "-", "Waktu": "-"})
 
-            if not all_ids:
-                st.info("📭 Belum ada batch pengepul yang terdaftar.")
-            else:
-                from config import TINGKAT_PROSES_MAP
-                rows = []
-                for bid in all_ids:
-                    try:
-                        data = traceability.functions.dataAgregasi(bid).call()
-                        id_b, tingkat, qty, mutu, pemilik, is_agg, ts = data
-                        sumber = traceability.functions.getSumberAgregasi(bid).call()
-                        rows.append({
-                            "ID Batch": id_b,
-                            "Tingkat": TINGKAT_PROSES_MAP.get(tingkat, "?"),
-                            "Total Qty (Kg)": f"{qty:,}",
-                            "Jml Sumber": len(sumber),
-                            "Status": "Diagregasi" if is_agg else "Tersedia",
-                            "Pemilik": f"{pemilik[:8]}...{pemilik[-4:]}",
-                            "Waktu": datetime.fromtimestamp(ts).strftime("%d %b %Y"),
-                        })
-                    except Exception:
-                        rows.append({"ID Batch": bid, "Tingkat": "-", "Total Qty (Kg)": "-",
-                                     "Jml Sumber": "-", "Status": "Error", "Pemilik": "-", "Waktu": "-"})
-
-                import pandas as pd
-                df = pd.DataFrame(rows)
-                st.dataframe(df, use_container_width=True, hide_index=True)
+                        import pandas as pd
+                        df = pd.DataFrame(rows)
+                        st.dataframe(df, use_container_width=True, hide_index=True)
         except Exception as e:
             st.error(f"❌ Gagal memuat daftar batch pengepul: {str(e)}")
     else:

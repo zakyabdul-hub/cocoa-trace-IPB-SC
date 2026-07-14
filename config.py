@@ -14,12 +14,12 @@ from web3 import Web3
 GANACHE_RPC = "http://127.0.0.1:7545"
 
 # ============================================================
-# ALAMAT SMART CONTRACT (Dari hasil deploy di REMIX IDE - scenario2.json)
+# ALAMAT SMART CONTRACT (Dari hasil deploy di REMIX IDE)
 # ============================================================
 CONTRACT_ADDRESSES = {
     "RoleManager":  "0x41AaFFa6129738343BA347EA65563F39150f715a",
     "MasterData":   "0x8430E5bb2e14b954579f737d698CE0bfBc349c68",
-    "Traceability": "0x01d25C5e812D601834DDAf76A0b756b095d237e8",
+    "Traceability": "0x50cA401354871a16C8b17bE5a26D74e56444109F",
 }
 
 # ============================================================
@@ -38,19 +38,51 @@ SIMULATION_ACCOUNTS = {
 VALID_ROLES = ["Admin", "Penangkar", "Petani", "Pengepul", "Perusahaan"]
 
 # ============================================================
-# ENUM TingkatProses (sesuai Traceability.sol)
+# ENUM TingkatProses (sesuai Traceability.sol - 8 Level)
 # ============================================================
 TINGKAT_PROSES_MAP = {
-    0: "Pengepul",
-    1: "GudangKab",
-    2: "GudangPelabuhan",
-    3: "Pusat",
+    0: "Kelompok Tani",
+    1: "Pengepul Desa (Tk.1)",
+    2: "Pengepul Kecamatan (Tk.2)",
+    3: "Pengepul Kabupaten (Tk.3)",
+    4: "Pengepul Luar Kab (Tk.4)",
+    5: "GudangKab",
+    6: "GudangPelabuhan",
+    7: "Pusat / Pengolah / Eksportir",
 }
 
 TINGKAT_LABEL_MAP = {
-    "GudangKab": 1,
-    "GudangPelabuhan": 2,
-    "Pusat": 3,
+    "GudangKab": 5,
+    "GudangPelabuhan": 6,
+    "Pusat": 7,
+}
+
+# ROUTING TABLE (Aturan Alur Rantai Pasok Kakao)
+VALID_ROUTES = {
+    0: [2, 3],
+    1: [2, 3],
+    2: [3],
+    3: [4, 5, 6, 7],
+    4: [5, 6, 7],
+    5: [6, 7],
+    6: [7],
+}
+
+TINGKAT_TERIMA_PANEN = [0, 1]
+TINGKAT_PENGEPUL = [0, 1, 2, 3, 4]
+TINGKAT_PERUSAHAAN = [5, 6, 7]
+TERMINAL_NODE = 7
+
+# PREFIX FORMAT ID BATCH
+ID_PREFIX = {
+    0: "KELTANI",
+    1: "P1",
+    2: "P2",
+    3: "P3",
+    4: "P4",
+    5: "GUDKAB",
+    6: "GUDPEL",
+    7: "COMPANY",
 }
 
 # ============================================================

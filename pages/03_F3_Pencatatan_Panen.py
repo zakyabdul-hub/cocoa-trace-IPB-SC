@@ -139,129 +139,141 @@ with col_form:
             except Exception as e:
                 st.error(f"Gagal memuat lahan: {e}")
 
-    with st.form("form_pencatatan_panen"):
-        st.markdown("**📋 Data Panen Dasar**")
-        id_batch = st.text_input(
-            "🏷️ ID Batch Panen Baru *",
-            placeholder="BTC-PETANI-001",
-            help="ID unik untuk batch panen ini. Format bebas tapi harus unik."
-        )
-        
-        # Ambil daftar lahan milik petani ini
-        lahan_list = []
-        if st.session_state.get('ganache_connected') and st.session_state.get('wallet_address'):
-            try:
-                from web3 import Web3
-                my_addr = Web3.to_checksum_address(st.session_state.wallet_address)
-                lahan_list = st.session_state.contracts['MasterData'].functions.getLahanByPetani(my_addr).call()
-            except Exception:
-                pass
-                
+    # Ambil daftar lahan milik petani ini
+    lahan_list = []
+    if st.session_state.get('ganache_connected') and st.session_state.get('wallet_address'):
+        try:
+            from web3 import Web3
+            my_addr = Web3.to_checksum_address(st.session_state.wallet_address)
+            lahan_list = st.session_state.contracts['MasterData'].functions.getLahanByPetani(my_addr).call()
+        except Exception:
+            pass
+
+    # Form Pencatatan Panen (Tanpa st.form untuk respon real-time ID)
+    st.markdown("**📋 Data Panen Dasar**")
+    col_p1, col_p2 = st.columns(2)
+    with col_p1:
+        tgl_panen = st.date_input("Tanggal Panen *", value=datetime.today(), key="panen_date")
+    with col_p2:
         id_lahan_ref = st.selectbox(
-            "🗺️ ID Lahan *",
+            "🗺️ ID Lahan Asal *",
             options=[""] + lahan_list,
             format_func=lambda x: "Pilih Lahan..." if x == "" else x,
             help="Pilih lahan Anda yang sudah terdaftar di blockchain (F2).",
-            disabled=len(lahan_list) == 0
+            disabled=len(lahan_list) == 0,
+            key="panen_lahan_ref"
         )
-        if not lahan_list:
-            st.caption("⚠️ Anda belum memiliki lahan terdaftar. Silakan daftar di F2.")
-        
-        col_qty, col_ferm = st.columns([2, 1])
-        with col_qty:
-            qty_panen = st.number_input(
-                "⚖️ Kuantitas Panen (Kg) *",
-                min_value=1,
-                max_value=100_000,
-                value=500,
-                step=10,
-                help="Jumlah biji kakao yang dipanen dalam kilogram."
-            )
-        
-        with col_ferm:
-            st.markdown("<br>", unsafe_allow_html=True)
-            is_fermented = st.checkbox(
-                "🧪 Sudah Difermentasi",
-                value=False,
-                help="Centang jika biji kakao sudah melalui proses fermentasi."
-            )
-        
-        # Preview status fermentasi
-        if is_fermented:
-            st.markdown("""
-            <div class="ferment-badge-yes">🧪 Status: Sudah Difermentasi ✅</div>
-            """, unsafe_allow_html=True)
-        else:
-            st.markdown("""
-            <div class="ferment-badge-no">⏳ Status: Belum Difermentasi</div>
-            """, unsafe_allow_html=True)
-        
-        st.markdown("---")
-        st.markdown(f"""
-        <div style="font-size: 0.8rem; color: #86EFAC;">
-            🔑 Transaksi dari: <code>{st.session_state.get('wallet_address', 'N/A')[:20]}...</code>
-        </div>
+    if not lahan_list:
+        st.caption("⚠️ Anda belum memiliki lahan terdaftar. Silakan daftar di F2.")
+
+    col_qty, col_ferm = st.columns([2, 1])
+    with col_qty:
+        qty_panen = st.number_input(
+            "⚖️ Kuantitas Panen (Kg) *",
+            min_value=1,
+            max_value=100_000,
+            value=500,
+            step=10,
+            help="Jumlah biji kakao yang dipanen dalam kilogram."
+        )
+    with col_ferm:
+        st.markdown("<br>", unsafe_allow_html=True)
+        is_fermented = st.checkbox(
+            "🧪 Sudah Difermentasi",
+            value=False,
+            help="Centang jika biji kakao sudah melalui proses fermentasi."
+        )
+
+    # Preview status fermentasi
+    if is_fermented:
+        st.markdown("""
+        <div class="ferment-badge-yes">🧪 Status: Sudah Difermentasi ✅</div>
         """, unsafe_allow_html=True)
-        
-        submitted = st.form_submit_button("🌾 Catat Panen ke Blockchain", use_container_width=True)
-        
-        if submitted:
-            errors = []
-            if not id_batch.strip():
-                errors.append("ID Batch Panen wajib diisi.")
-            if not id_lahan_ref.strip():
-                errors.append("ID Lahan wajib diisi.")
-            if qty_panen < 1:
-                errors.append("Kuantitas minimal 1 Kg.")
-            
-            if errors:
-                for err in errors:
-                    st.error(f"❌ {err}")
-            elif not st.session_state.get('private_key'):
-                st.error("❌ Private Key belum diinput!")
-            else:
-                with st.spinner("⏳ Mencatat panen ke blockchain..."):
-                    try:
-                        w3 = st.session_state.w3
-                        contracts = st.session_state.contracts
-                        traceability = contracts['Traceability']
-                        
-                        contract_func = traceability.functions.createHarvestBatch(
-                            id_batch.strip(),
-                            id_lahan_ref.strip(),
-                            int(qty_panen),
-                            bool(is_fermented)
-                        )
-                        
-                        result = build_transaction(
-                            w3,
-                            contract_func,
-                            st.session_state.wallet_address,
-                            st.session_state.private_key
-                        )
-                        
-                        if result['success']:
-                            ferment_str = "✅ Sudah Difermentasi" if is_fermented else "⏳ Belum Difermentasi"
-                            st.markdown(f"""
-                            <div class="tx-success">
-                                <div style="font-size: 1.2rem; color: #4ADE80; margin-bottom: 12px;">✅ Batch Panen Berhasil Dicatat!</div>
-                                <table style="font-size: 0.8rem; color: #BBF7D0; width: 100%;">
-                                    <tr><td style="color: #86EFAC; padding: 3px 0;">🏷️ ID Batch</td><td><strong>{id_batch}</strong></td></tr>
-                                    <tr><td style="color: #86EFAC; padding: 3px 0;">🗺️ ID Lahan</td><td>{id_lahan_ref}</td></tr>
-                                    <tr><td style="color: #86EFAC; padding: 3px 0;">⚖️ Kuantitas</td><td><strong>{qty_panen:,} Kg</strong></td></tr>
-                                    <tr><td style="color: #86EFAC; padding: 3px 0;">🧪 Fermentasi</td><td>{ferment_str}</td></tr>
-                                    <tr><td style="color: #86EFAC; padding: 3px 0;">🔗 TX Hash</td>
-                                        <td style="font-family: monospace; font-size: 0.7rem;">{result['tx_hash'][:24]}...{result['tx_hash'][-8:]}</td>
-                                    </tr>
-                                </table>
-                            </div>
-                            """, unsafe_allow_html=True)
-                            st.balloons()
-                        else:
-                            st.error(f"❌ Transaksi Gagal: {result['error']}")
-                    except Exception as e:
-                        st.error(f"❌ Error: {str(e)}")
+    else:
+        st.markdown("""
+        <div class="ferment-badge-no">⏳ Status: Belum Difermentasi</div>
+        """, unsafe_allow_html=True)
+
+    # Dynamic real-time ID calculation
+    id_batch = ""
+    if id_lahan_ref.strip():
+        from utils import generate_panen_id
+        ddmmyy = tgl_panen.strftime("%d%m%y")
+        id_batch = generate_panen_id(ddmmyy, id_lahan_ref.strip())
+
+    st.text_input(
+        "🏷️ ID Batch Panen Baru (Otomatis) *",
+        value=id_batch,
+        disabled=True,
+        help="ID unik untuk batch panen ini yang dihasilkan secara otomatis dari tanggal dan lahan asal."
+    )
+
+    st.markdown("---")
+    st.markdown(f"""
+    <div style="font-size: 0.8rem; color: #86EFAC; margin-bottom: 8px;">
+        🔑 Transaksi dari: <code>{st.session_state.get('wallet_address', 'N/A')[:20]}...</code>
+    </div>
+    """, unsafe_allow_html=True)
     
+    submitted = st.button("🌾 Catat Panen ke Blockchain", use_container_width=True)
+    
+    if submitted:
+        errors = []
+        if not id_lahan_ref.strip():
+            errors.append("ID Lahan wajib diisi.")
+        if qty_panen < 1:
+            errors.append("Kuantitas minimal 1 Kg.")
+        if not id_batch:
+            errors.append("Gagal membuat ID Batch. Pilih Lahan Asal terlebih dahulu.")
+        
+        if errors:
+            for err in errors:
+                st.error(f"❌ {err}")
+        elif not st.session_state.get('private_key'):
+            st.error("❌ Private Key belum diinput!")
+        else:
+            with st.spinner("⏳ Mencatat panen ke blockchain..."):
+                try:
+                    w3 = st.session_state.w3
+                    contracts = st.session_state.contracts
+                    traceability = contracts['Traceability']
+                    
+                    contract_func = traceability.functions.createHarvestBatch(
+                        id_batch,
+                        id_lahan_ref.strip(),
+                        int(qty_panen),
+                        bool(is_fermented)
+                    )
+                    
+                    result = build_transaction(
+                        w3,
+                        contract_func,
+                        st.session_state.wallet_address,
+                        st.session_state.private_key
+                    )
+                    
+                    if result['success']:
+                        ferment_str = "✅ Sudah Difermentasi" if is_fermented else "⏳ Belum Difermentasi"
+                        st.markdown(f"""
+                        <div class="tx-success">
+                            <div style="font-size: 1.2rem; color: #4ADE80; margin-bottom: 12px;">✅ Batch Panen Berhasil Dicatat!</div>
+                            <table style="font-size: 0.8rem; color: #BBF7D0; width: 100%;">
+                                <tr><td style="color: #86EFAC; padding: 3px 0;">🏷️ ID Batch</td><td><strong>{id_batch}</strong></td></tr>
+                                <tr><td style="color: #86EFAC; padding: 3px 0;">🗺️ ID Lahan</td><td>{id_lahan_ref}</td></tr>
+                                <tr><td style="color: #86EFAC; padding: 3px 0;">⚖️ Kuantitas</td><td><strong>{qty_panen:,} Kg</strong></td></tr>
+                                <tr><td style="color: #86EFAC; padding: 3px 0;">🧪 Fermentasi</td><td>{ferment_str}</td></tr>
+                                <tr><td style="color: #86EFAC; padding: 3px 0;">🔗 TX Hash</td>
+                                    <td style="font-family: monospace; font-size: 0.7rem;">{result['tx_hash']}</td>
+                                </tr>
+                            </table>
+                        </div>
+                        """, unsafe_allow_html=True)
+                        st.balloons()
+                    else:
+                        st.error(f"❌ Transaksi Gagal: {result['error']}")
+                except Exception as e:
+                    st.error(f"❌ Error: {str(e)}")
+
     st.markdown("</div>", unsafe_allow_html=True)
 
 with col_info:

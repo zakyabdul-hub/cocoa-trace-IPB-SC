@@ -702,7 +702,7 @@ features = [
     {
         "icon": "📦",
         "title": "F4 — Agregasi Pengepul",
-        "desc": "Gabungkan beberapa batch panen dari berbagai petani menjadi satu batch pengepul dengan chaining validation.",
+        "desc": "Gabungkan beberapa batch panen/agregasi menjadi batch pengepul baru (Level 0 s.d 4) dengan validasi rute ketertelusuran.",
         "role": "Pengepul",
         "page": "04_F4_Agregasi_Pengepul",
         "color": "#D97706",
@@ -710,7 +710,7 @@ features = [
     {
         "icon": "🏭",
         "title": "F5 — Agregasi Perusahaan",
-        "desc": "Proses agregasi berjenjang sesuai hierarki: GudangKab → GudangPelabuhan → Pusat.",
+        "desc": "Proses agregasi perusahaan berjenjang sesuai hierarki fleksibel: GudangKab (L5) → GudangPelabuhan (L6) → Pusat (L7).",
         "role": "Perusahaan",
         "page": "05_F5_Agregasi_Perusahaan",
         "color": "#DC2626",

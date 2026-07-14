@@ -272,10 +272,14 @@ def render_trace_node(node: dict, indent: int = 0) -> str:
         tingkat_name = node.get('tingkat_name', 'Unknown')
         
         level_css = {
-            3: ("level-pusat", "badge-pusat", "🏛️", "#DC2626"),
-            2: ("level-pelabuhan", "badge-pelabuhan", "🚢", "#D97706"),
-            1: ("level-gudangkab", "badge-gudangkab", "🏠", "#0284C7"),
-            0: ("level-pengepul", "badge-pengepul", "📦", "#059669"),
+            7: ("level-pusat", "badge-pusat", "🏛️", "#DC2626"),
+            6: ("level-pelabuhan", "badge-pelabuhan", "🚢", "#EC4899"),
+            5: ("level-gudangkab", "badge-gudangkab", "🏠", "#0284C7"),
+            4: ("level-pengepul-luar", "badge-pengepul-luar", "🚚", "#3B82F6"),
+            3: ("level-pengepul-kab", "badge-pengepul-kab", "🏢", "#10B981"),
+            2: ("level-pengepul-kec", "badge-pengepul-kec", "🏡", "#8B5CF6"),
+            1: ("level-pengepul-desa", "badge-pengepul-desa", "🛖", "#F59E0B"),
+            0: ("level-keltani", "badge-keltani", "👥", "#14B8A6"),
         }
         css, badge_css, icon, color = level_css.get(tingkat, ("", "", "📋", "#7C3AED"))
         ts_str = datetime.fromtimestamp(node['timestamp']).strftime("%d %b %Y, %H:%M")
@@ -693,21 +697,29 @@ with tab_browse:
     </div>
     """, unsafe_allow_html=True)
 
-    # Sub-tabs per tahapan
-    stab_panen, stab_pengepul, stab_gk, stab_gp, stab_pusat = st.tabs([
+    # Sub-tabs per tahapan (9 tab)
+    stab_panen, stab_keltani, stab_p_desa, stab_p_kec, stab_p_kab, stab_p_luar, stab_g_kab, stab_g_pel, stab_pusat = st.tabs([
         "🌾 Panen (Petani)",
-        "📦 Pengepul (Lv.0)",
-        "🏠 GudangKab (Lv.1)",
-        "🚢 GudangPelabuhan (Lv.2)",
-        "🏛️ Pusat (Lv.3)",
+        "👥 Kelompok Tani (L0)",
+        "🛖 Pengepul Desa (L1)",
+        "🏡 Kecamatan (L2)",
+        "🏢 Kabupaten (L3)",
+        "🚚 Luar Kab (L4)",
+        "🏠 GudangKab (L5)",
+        "🚢 GudangPelabuhan (L6)",
+        "🏛️ Pusat (L7)",
     ])
 
     level_config = [
         (stab_panen,    'panen', "Batch Panen",         "#4ADE80"),
-        (stab_pengepul, '0',     "Batch Pengepul",      "#FCD34D"),
-        (stab_gk,       '1',     "Batch GudangKab",     "#7DD3FC"),
-        (stab_gp,       '2',     "Batch GudangPelabuhan","#FCA5A5"),
-        (stab_pusat,    '3',     "Batch Pusat",          "#F87171"),
+        (stab_keltani,  '0',     "Kelompok Tani (L0)",   "#14B8A6"),
+        (stab_p_desa,   '1',     "Pengepul Desa (L1)",   "#F59E0B"),
+        (stab_p_kec,    '2',     "Pengepul Kec (L2)",    "#8B5CF6"),
+        (stab_p_kab,    '3',     "Pengepul Kab (L3)",    "#10B981"),
+        (stab_p_luar,   '4',     "Pengepul Luar (L4)",   "#3B82F6"),
+        (stab_g_kab,    '5',     "GudangKab (L5)",       "#0284C7"),
+        (stab_g_pel,    '6',     "GudangPelabuhan (L6)","#EC4899"),
+        (stab_pusat,    '7',     "Pusat (L7)",           "#EF4444"),
     ]
 
     for tab_obj, level_key, level_label, level_color in level_config:

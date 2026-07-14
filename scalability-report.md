@@ -7,32 +7,32 @@ Fungsi ini mengagregasikan $N$ batch panen milik Petani.
 
 | Jumlah Input Batch ($N$) | Konsumsi Gas (Gas Units) |
 |---|---|
-| 2 | 331.329 |
-| 5 | 396.769 |
-| 10 | 562.925 |
-| 15 | 729.085 |
-| 20 | 895.140 |
-| 25 | 1.061.319 |
+| 2 | 333.412 |
+| 5 | 399.921 |
+| 10 | 567.860 |
+| 15 | 735.804 |
+| 20 | 903.644 |
+| 25 | 1.071.610 |
 
 ## 2. Skalabilitas createCompanyBatch (Perusahaan)
 Fungsi ini mengagregasikan $N$ batch agregasi dari tingkat sebelumnya.
 
 | Jumlah Input Batch ($N$) | Konsumsi Gas (Gas Units) |
 |---|---|
-| 2 | 359.485 |
-| 5 | 433.124 |
-| 10 | 612.957 |
-| 15 | 792.783 |
-| 20 | 972.503 |
-| 25 | 1.152.348 |
+| 2 | 359.449 |
+| 5 | 433.394 |
+| 10 | 613.738 |
+| 15 | 794.073 |
+| 20 | 974.304 |
+| 25 | 1.154.658 |
 
 ## 3. CSV Format (Untuk Excel/Grafik)
 ```csv
 InputSize,createCollectorBatch_Gas,createCompanyBatch_Gas
-2,331329,359485
-5,396769,433124
-10,562925,612957
-15,729085,792783
-20,895140,972503
-25,1061319,1152348
+2,333412,359449
+5,399921,433394
+10,567860,613738
+15,735804,794073
+20,903644,974304
+25,1071610,1154658
 ```

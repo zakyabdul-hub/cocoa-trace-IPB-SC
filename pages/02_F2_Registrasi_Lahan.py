@@ -180,11 +180,20 @@ def cek_status_lahan_lokal(lat, lon):
             }
         else:
             row = matched.iloc[0]
-            fungsi = str(row.get('legend_in', 'Kawasan Hutan'))
+            fungsi = str(row.get('legend_in', 'Kawasan Hutan')).strip()
             nama = str(row.get('namobj', 'Tidak Diketahui'))
             if nama.lower() == 'none' or nama == '':
                 nama = 'Tidak Diketahui'
                 
+            # Jika merupakan Areal Penggunaan Lain (APL), maka statusnya adalah VALID (bukan kawasan hutan)
+            if fungsi.upper() == 'AREAL PENGGUNAAN LAIN':
+                return {
+                    'status': 'VALID',
+                    'message': f'✅ Lahan Berada di Areal Penggunaan Lain (APL) / Luar Kawasan Hutan (Hasil Cek SHP Lokal)',
+                    'fungsi_kws': fungsi,
+                    'nama_kws': nama
+                }
+            
             return {
                 'status': 'INVALID',
                 'message': f"❌ Lahan Terindikasi Masuk Kawasan Hutan: {fungsi} (Hasil Cek SHP Lokal)",
@@ -326,95 +335,121 @@ with col_form:
     </div>
     """, unsafe_allow_html=True)
 
-    with st.form("form_registrasi_lahan"):
-        st.markdown("**📋 Informasi Dasar Lahan**")
-        col_id1, col_id2 = st.columns(2)
-        with col_id1:
-            id_lahan = st.text_input("🏷️ ID Lahan *", placeholder="LHN-POLMAN-001")
-        with col_id2:
-            no_stdb = st.text_input("📄 No. STDB *", placeholder="STDB-123/2024")
-        
-        luas = st.number_input("📐 Luas Lahan (m²) *", min_value=1, max_value=10_000_000, value=10000, step=100)
-        
-        st.markdown("**🌱 Varietas Benih yang Digunakan**")
-        # Ambil daftar varietas dari blockchain
-        varietas_list = []
-        if st.session_state.get('ganache_connected'):
-            try:
-                varietas_list = st.session_state.contracts['MasterData'].functions.getAllVarietasIds().call()
-            except Exception:
-                pass
-                
-        col_var1, col_var2 = st.columns(2)
-        with col_var1:
-            id_var1 = st.selectbox("🌱 ID Varietas Utama *", options=[""] + varietas_list, disabled=len(varietas_list) == 0)
-        with col_var2:
-            id_var2 = st.selectbox("🌿 ID Varietas Opsional", options=[""] + varietas_list, disabled=len(varietas_list) == 0)
-        
-        st.markdown("---")
-        
-        is_disabled = not val_done or klhk_result['status'] != 'VALID'
-        
-        submitted = st.form_submit_button(
-            "🔗 Daftarkan Lahan ke Blockchain",
-            use_container_width=True,
-            disabled=is_disabled
-        )
-        
-        if submitted:
-            errors = []
-            if not id_lahan.strip(): errors.append("ID Lahan wajib diisi.")
-            if not no_stdb.strip(): errors.append("No. STDB wajib diisi.")
-            if not id_var1.strip(): errors.append("ID Varietas Utama wajib diisi.")
+    # Inisialisasi session state jika belum ada
+    if 'prefilled_no_stdb' not in st.session_state:
+        st.session_state.prefilled_no_stdb = ""
+
+    # Form Registrasi Lahan (Tanpa st.form untuk respon real-time ID)
+    st.markdown("**📋 Informasi Dasar Lahan**")
+    col_id1, col_id2 = st.columns(2)
+    with col_id1:
+        nama_petani = st.text_input("Nama Petani *", placeholder="Contoh: AGUS", key="lahan_nama_petani")
+    with col_id2:
+        no_stdb = st.text_input("📄 No. STDB *", placeholder="Contoh: 1234567", key="lahan_no_stdb")
+    
+    luas = st.number_input("📐 Luas Lahan (m²) *", min_value=1, max_value=10_000_000, value=10000, step=100)
+    
+    st.markdown("**🌱 Varietas Benih yang Digunakan**")
+    # Ambil daftar varietas dari blockchain
+    varietas_list = []
+    if st.session_state.get('ganache_connected'):
+        try:
+            varietas_list = st.session_state.contracts['MasterData'].functions.getAllVarietasIds().call()
+        except Exception:
+            pass
             
-            if errors:
-                for err in errors: st.error(f"❌ {err}")
-            elif not st.session_state.get('private_key'):
-                st.error("❌ Private Key belum diinput pada sidebar!")
-            else:
-                # Kirim ke blockchain
-                with st.spinner("⏳ Mendaftarkan lahan ke blockchain..."):
-                    try:
-                        w3 = st.session_state.w3
-                        master_data = st.session_state.contracts['MasterData']
-                        koordinat_str = f"{val_lat:.6f},{val_lon:.6f}"
-                        is_bebas = True  # Karena sudah lolos validasi step 1
-                        
-                        contract_func = master_data.functions.registerLand(
-                            id_lahan.strip(),
-                            no_stdb.strip(),
-                            koordinat_str,
-                            int(luas),
-                            id_var1.strip(),
-                            id_var2.strip() if id_var2 else "",
-                            is_bebas
-                        )
-                        
-                        result_tx = build_transaction(
-                            w3, contract_func,
-                            st.session_state.wallet_address,
-                            st.session_state.private_key
-                        )
-                        
-                        if result_tx['success']:
-                            st.markdown(f"""
-                            <div class="tx-success">
-                                <div style="font-size:1.2rem;color:#38BDF8;margin-bottom:12px;">✅ Lahan Berhasil Didaftarkan!</div>
-                                <table style="font-size:0.8rem;color:#BAE6FD;width:100%;">
-                                    <tr><td style="color:#7DD3FC;padding:3px 0;">🏷️ ID Lahan</td><td><strong>{id_lahan}</strong></td></tr>
-                                    <tr><td style="color:#7DD3FC;padding:3px 0;">📄 No. STDB</td><td>{no_stdb}</td></tr>
-                                    <tr><td style="color:#7DD3FC;padding:3px 0;">📍 Koordinat</td><td>{koordinat_str}</td></tr>
-                                    <tr><td style="color:#7DD3FC;padding:3px 0;">🔗 TX Hash</td>
-                                        <td style="font-family:monospace;font-size:0.7rem;">{result_tx['tx_hash']}</td>
-                                    </tr>
-                                </table>
-                            </div>
-                            """, unsafe_allow_html=True)
-                            st.balloons()
-                        else:
-                            st.error(f"❌ Transaksi Gagal: {result_tx['error']}")
-                    except Exception as e:
-                        st.error(f"❌ Error: {str(e)}")
+    col_var1, col_var2 = st.columns(2)
+    with col_var1:
+        id_var1 = st.selectbox("🌱 ID Varietas Utama *", options=[""] + varietas_list, disabled=len(varietas_list) == 0)
+    with col_var2:
+        id_var2 = st.selectbox("🌿 ID Varietas Opsional", options=[""] + varietas_list, disabled=len(varietas_list) == 0)
+
+    # Dynamic real-time sequence and ID calculation
+    id_lahan = ""
+    seq = ""
+    if nama_petani.strip() and no_stdb.strip():
+        from utils import get_next_sequence_lahan, generate_lahan_id
+        if st.session_state.get('ganache_connected'):
+            master_data = st.session_state.contracts['MasterData']
+            seq = get_next_sequence_lahan(master_data, no_stdb.strip())
+            id_lahan = generate_lahan_id(nama_petani.strip(), no_stdb.strip(), seq)
+        else:
+            id_lahan = "LAHAN-[Petani]-[STDB]-001"
+
+    st.text_input(
+        "🏷️ ID Lahan Tergenerate (Otomatis) *",
+        value=id_lahan,
+        disabled=True,
+        help="ID unik lahan ini yang dihasilkan secara otomatis dari Nama Petani, No STDB, dan urutan database."
+    )
+    if seq:
+        st.caption(f"ℹ️ Nomor Urut STDB terdeteksi di blockchain: **#{seq}**")
+    
+    st.markdown("---")
+    
+    is_disabled = not val_done or klhk_result['status'] != 'VALID'
+    
+    submitted = st.button(
+        "🔗 Daftarkan Lahan ke Blockchain",
+        use_container_width=True,
+        disabled=is_disabled
+    )
+    
+    if submitted:
+        errors = []
+        if not nama_petani.strip(): errors.append("Nama Petani wajib diisi.")
+        if not no_stdb.strip(): errors.append("No. STDB wajib diisi.")
+        if not id_var1.strip(): errors.append("ID Varietas Utama wajib diisi.")
+        if not id_lahan: errors.append("Gagal membuat ID Lahan. Lengkapi data di atas.")
+        
+        if errors:
+            for err in errors: st.error(f"❌ {err}")
+        elif not st.session_state.get('private_key'):
+            st.error("❌ Private Key belum diinput pada sidebar!")
+        else:
+            # Kirim ke blockchain
+            with st.spinner("⏳ Mendaftarkan lahan ke blockchain..."):
+                try:
+                    w3 = st.session_state.w3
+                    master_data = st.session_state.contracts['MasterData']
+                    koordinat_str = f"{val_lat:.6f},{val_lon:.6f}"
+                    is_bebas = True  # Karena sudah lolos validasi step 1
+                    
+                    contract_func = master_data.functions.registerLand(
+                        id_lahan,
+                        no_stdb.strip().upper(),
+                        koordinat_str,
+                        int(luas),
+                        id_var1.strip(),
+                        id_var2.strip() if id_var2 else "",
+                        is_bebas
+                    )
+                    
+                    result_tx = build_transaction(
+                        w3, contract_func,
+                        st.session_state.wallet_address,
+                        st.session_state.private_key
+                    )
+                    
+                    if result_tx['success']:
+                        st.markdown(f"""
+                        <div class="tx-success">
+                            <div style="font-size:1.2rem;color:#38BDF8;margin-bottom:12px;">✅ Lahan Berhasil Didaftarkan!</div>
+                            <table style="font-size:0.8rem;color:#BAE6FD;width:100%;">
+                                <tr><td style="color:#7DD3FC;padding:3px 0;">🏷️ ID Lahan</td><td><strong>{id_lahan}</strong></td></tr>
+                                <tr><td style="color:#7DD3FC;padding:3px 0;">📄 No. STDB</td><td>{no_stdb.upper()}</td></tr>
+                                <tr><td style="color:#7DD3FC;padding:3px 0;">📍 Koordinat</td><td>{koordinat_str}</td></tr>
+                                <tr><td style="color:#7DD3FC;padding:3px 0;">🔗 TX Hash</td>
+                                    <td style="font-family:monospace;font-size:0.7rem;">{result_tx['tx_hash']}</td>
+                                </tr>
+                            </table>
+                        </div>
+                        """, unsafe_allow_html=True)
+                        st.balloons()
+                    else:
+                        st.error(f"❌ Transaksi Gagal: {result_tx['error']}")
+                except Exception as e:
+                    st.error(f"❌ Error: {str(e)}")
 
 # ============================================================
 # KOLOM KANAN — PETA INTERAKTIF

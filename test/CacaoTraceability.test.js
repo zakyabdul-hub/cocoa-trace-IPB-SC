@@ -106,7 +106,7 @@ describe("Sistem Ketertelusuran Kakao - Gas Statistics Test (Multi-call)", funct
     });
   });
 
-  describe("3. Pengujian Traceability (10+ Calls)", function () {
+  describe("3. Pengujian Traceability (10+ Calls & Route Validation)", function () {
     it("Petani harus bisa mencatat banyak Batch Panen (loop 25 kali)", async function () {
       for (let i = 1; i <= 25; i++) {
         await traceability.connect(petani).createHarvestBatch(
@@ -121,8 +121,8 @@ describe("Sistem Ketertelusuran Kakao - Gas Statistics Test (Multi-call)", funct
       }
     });
 
-    it("Pengepul harus bisa melakukan banyak Agregasi Batch Panen (loop 10 kali)", async function () {
-      // Mengelompokkan 20 batch panen petani pertama ke dalam 10 batch agregasi pengepul
+    it("Pengepul harus bisa melakukan banyak Agregasi Batch Panen di Level 0 (loop 10 kali)", async function () {
+      // Mengelompokkan 20 batch panen petani pertama ke dalam 10 batch KelompokTani (Level 0)
       for (let i = 1; i <= 10; i++) {
         const source1 = `BATCH-HARVEST-${(i - 1) * 2 + 1}`;
         const source2 = `BATCH-HARVEST-${(i - 1) * 2 + 2}`;
@@ -131,11 +131,14 @@ describe("Sistem Ketertelusuran Kakao - Gas Statistics Test (Multi-call)", funct
         await traceability.connect(pengepul).createCollectorBatch(
           `BATCH-COLLECTOR-${i}`,
           [source1, source2],
+          [], // idSumberAgregasi
+          0,  // tingkat: KelompokTani (Level 0)
           qtyTotal
         );
 
         const collectorBatch = await traceability.getAgregasiBatchDetail(`BATCH-COLLECTOR-${i}`);
         expect(collectorBatch.totalQty).to.equal(qtyTotal);
+        expect(collectorBatch.tingkat).to.equal(BigInt(0));
       }
     });
 
@@ -144,33 +147,71 @@ describe("Sistem Ketertelusuran Kakao - Gas Statistics Test (Multi-call)", funct
         traceability.connect(pengepul).createCollectorBatch(
           "BATCH-COLLECTOR-FAILED",
           ["BATCH-HARVEST-1"],
+          [],
+          0,
           100
         )
       ).to.be.revertedWith("Gagal: Ada Batch Panen yang sudah diambil pengepul lain!");
     });
 
-    it("Perusahaan harus bisa melakukan banyak agregasi berjenjang (3 tingkat x 10 calls)", async function () {
-      // 1. Agregasi ke GudangKab (level 1) dari BATCH-COLLECTOR-1 s.d BATCH-COLLECTOR-10 (10 calls)
+    it("Pengepul harus bisa melakukan agregasi tingkat lanjutan (0 -> 3) secara valid", async function () {
       for (let i = 1; i <= 10; i++) {
-        const collectorBatch = await traceability.getAgregasiBatchDetail(`BATCH-COLLECTOR-${i}`);
+        const colBatch = await traceability.getAgregasiBatchDetail(`BATCH-COLLECTOR-${i}`);
+        await traceability.connect(pengepul).createCollectorBatch(
+          `BATCH-KAB-${i}`,
+          [], // idSumberPanen
+          [`BATCH-COLLECTOR-${i}`], // idSumberAgregasi
+          3, // tingkat: Pengepul Kabupaten (Level 3)
+          colBatch.totalQty
+        );
+        const kabBatch = await traceability.getAgregasiBatchDetail(`BATCH-KAB-${i}`);
+        expect(kabBatch.tingkat).to.equal(BigInt(3));
+      }
+    });
+
+    it("Percobaan agregasi dengan rute tidak valid (L0 -> L5) harus ditolak", async function () {
+      // Buat batch level 0 temporary yang belum diagregasi
+      await traceability.connect(pengepul).createCollectorBatch(
+        "BATCH-COLLECTOR-TEMP-INVALID",
+        ["BATCH-HARVEST-21"],
+        [],
+        0, // KelompokTani
+        100
+      );
+      // GudangKab (L5) hanya menerima dari L3 atau L4, bukan L0 (KelompokTani) langsung
+      await expect(
+        traceability.connect(perusahaan).createCompanyBatch(
+          "BATCH-GUDANGKAB-INVALID",
+          ["BATCH-COLLECTOR-TEMP-INVALID"],
+          5, // GudangKab
+          100,
+          "Mutu Gagal"
+        )
+      ).to.be.revertedWith("Jalur rantai pasok tidak valid!");
+    });
+
+    it("Perusahaan harus bisa melakukan agregasi berjenjang (Tk.5 -> Tk.6 -> Tk.7) secara valid", async function () {
+      // 1. Agregasi ke GudangKab (Level 5) dari BATCH-KAB-1 s.d BATCH-KAB-10 (10 calls)
+      for (let i = 1; i <= 10; i++) {
+        const kabBatch = await traceability.getAgregasiBatchDetail(`BATCH-KAB-${i}`);
         await traceability.connect(perusahaan).createCompanyBatch(
           `BATCH-GUDANGKAB-${i}`,
-          [`BATCH-COLLECTOR-${i}`],
-          1, // TingkatProses.GudangKab
-          collectorBatch.totalQty,
+          [`BATCH-KAB-${i}`],
+          5, // GudangKab (Level 5)
+          kabBatch.totalQty,
           `Mutu A-${i}`
         );
         const gkBatch = await traceability.getAgregasiBatchDetail(`BATCH-GUDANGKAB-${i}`);
-        expect(gkBatch.totalQty).to.equal(collectorBatch.totalQty);
+        expect(gkBatch.totalQty).to.equal(kabBatch.totalQty);
       }
 
-      // 2. Agregasi ke GudangPelabuhan (level 2) dari BATCH-GUDANGKAB-1 s.d BATCH-GUDANGKAB-10 (10 calls)
+      // 2. Agregasi ke GudangPelabuhan (Level 6) dari BATCH-GUDANGKAB-1 s.d BATCH-GUDANGKAB-10 (10 calls)
       for (let i = 1; i <= 10; i++) {
         const gkBatch = await traceability.getAgregasiBatchDetail(`BATCH-GUDANGKAB-${i}`);
         await traceability.connect(perusahaan).createCompanyBatch(
           `BATCH-GUDANGPELABUHAN-${i}`,
           [`BATCH-GUDANGKAB-${i}`],
-          2, // TingkatProses.GudangPelabuhan
+          6, // GudangPelabuhan (Level 6)
           gkBatch.totalQty,
           `Mutu Ekspor-${i}`
         );
@@ -178,19 +219,31 @@ describe("Sistem Ketertelusuran Kakao - Gas Statistics Test (Multi-call)", funct
         expect(gpBatch.totalQty).to.equal(gkBatch.totalQty);
       }
 
-      // 3. Agregasi ke Pusat (level 3) dari BATCH-GUDANGPELABUHAN-1 s.d BATCH-GUDANGPELABUHAN-10 (10 calls)
+      // 3. Agregasi ke Pusat (Level 7) dari BATCH-GUDANGPELABUHAN-1 s.d BATCH-GUDANGPELABUHAN-10 (10 calls)
       for (let i = 1; i <= 10; i++) {
         const gpBatch = await traceability.getAgregasiBatchDetail(`BATCH-GUDANGPELABUHAN-${i}`);
         await traceability.connect(perusahaan).createCompanyBatch(
           `BATCH-PUSAT-${i}`,
           [`BATCH-GUDANGPELABUHAN-${i}`],
-          3, // TingkatProses.Pusat
+          7, // Pusat (Level 7)
           gpBatch.totalQty,
           `Mutu Super-${i}`
         );
         const pBatch = await traceability.getAgregasiBatchDetail(`BATCH-PUSAT-${i}`);
         expect(pBatch.totalQty).to.equal(gpBatch.totalQty);
       }
+    });
+
+    it("Percobaan agregasi memutar/mundur tingkat (L7 -> L5) harus ditolak", async function () {
+      await expect(
+        traceability.connect(perusahaan).createCompanyBatch(
+          "BATCH-GK-BACKWARD",
+          ["BATCH-PUSAT-1"],
+          5, // GudangKab
+          100,
+          "Mutu Mundur"
+        )
+      ).to.be.revertedWith("Jalur rantai pasok tidak valid!");
     });
   });
 });

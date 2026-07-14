@@ -117,98 +117,114 @@ with col_form:
              color: #34D399; margin-bottom: 20px;">📝 Form Registrasi Varietas</div>
     """, unsafe_allow_html=True)
     
-    with st.form("form_registrasi_varietas", clear_on_submit=False):
-        id_varietas = st.text_input(
-            "🏷️ ID Varietas *",
-            placeholder="Contoh: VAR-LINDAK-001",
-            help="ID unik untuk varietas benih ini. Tidak boleh duplikat di blockchain."
-        )
+    # Form Registrasi Varietas
+    col_v1, col_v2 = st.columns(2)
+    with col_v1:
+        jenis_varietas = st.text_input("Nama/Jenis Varietas *", placeholder="Contoh: MCC02", key="var_jenis")
+    with col_v2:
+        mmyy_varietas = st.text_input("Bulan-Tahun Edar (MMYY) *", placeholder="Contoh: 0722", max_chars=4, key="var_mmyy")
         
-        sk_pelepasan = st.text_input(
-            "📄 Nomor SK Pelepasan *",
-            placeholder="Contoh: SK.123/BPSB/2024",
-            help="Nomor Surat Keputusan Pelepasan varietas dari instansi berwenang."
-        )
+    sk_pelepasan = st.text_input(
+        "📄 Nomor SK Pelepasan *",
+        placeholder="Contoh: KPTS.12/XI/2025",
+        help="Nomor Surat Keputusan Pelepasan varietas dari instansi berwenang."
+    )
+    
+    masa_edar = st.number_input(
+        "📅 Masa Edar (Tahun) *",
+        min_value=1,
+        max_value=50,
+        value=5,
+        step=1,
+        help="Jangka waktu validitas edar benih dalam tahun."
+    )
+
+    # Dynamic real-time ID calculation
+    from utils import generate_varietas_id
+    if jenis_varietas.strip() and mmyy_varietas.strip():
+        id_varietas = generate_varietas_id(jenis_varietas.strip(), mmyy_varietas.strip(), int(masa_edar))
+    else:
+        id_varietas = ""
+
+    st.text_input(
+        "🏷️ ID Varietas Tergenerate (Otomatis) *",
+        value=id_varietas,
+        disabled=True,
+        help="ID unik varietas ini yang dihasilkan secara otomatis dari Jenis, MMYY, dan Masa Edar."
+    )
+
+    st.markdown("---")
+    st.markdown(f"""
+    <div style="font-size: 0.8rem; color: #6EE7B7; margin-bottom: 8px;">
+        🔑 Transaksi akan dikirim dari wallet:<br>
+        <code style="font-size: 0.75rem;">{st.session_state.get('wallet_address', 'N/A')}</code>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    submitted = st.button(
+        "🌱 Daftarkan Varietas ke Blockchain",
+        use_container_width=True
+    )
+    
+    if submitted:
+        # Validasi Input
+        errors = []
+        if not jenis_varietas.strip():
+            errors.append("Nama/Jenis Varietas wajib diisi.")
+        if not mmyy_varietas.strip() or len(mmyy_varietas.strip()) != 4:
+            errors.append("Bulan-Tahun Edar (MMYY) harus 4 karakter.")
+        if not sk_pelepasan.strip():
+            errors.append("Nomor SK Pelepasan wajib diisi.")
+        if not id_varietas:
+            errors.append("Gagal membuat ID Varietas. Lengkapi Jenis dan Bulan-Tahun Edar.")
         
-        masa_edar = st.number_input(
-            "📅 Masa Edar (Tahun) *",
-            min_value=1,
-            max_value=50,
-            value=5,
-            step=1,
-            help="Jangka waktu validitas edar benih dalam tahun."
-        )
-        
-        st.markdown("---")
-        st.markdown(f"""
-        <div style="font-size: 0.8rem; color: #6EE7B7; margin-bottom: 8px;">
-            🔑 Transaksi akan dikirim dari wallet:<br>
-            <code style="font-size: 0.75rem;">{st.session_state.get('wallet_address', 'N/A')}</code>
-        </div>
-        """, unsafe_allow_html=True)
-        
-        submitted = st.form_submit_button(
-            "🌱 Daftarkan Varietas ke Blockchain",
-            use_container_width=True
-        )
-        
-        if submitted:
-            # Validasi Input
-            errors = []
-            if not id_varietas.strip():
-                errors.append("ID Varietas wajib diisi.")
-            if not sk_pelepasan.strip():
-                errors.append("Nomor SK Pelepasan wajib diisi.")
-            if masa_edar < 1:
-                errors.append("Masa Edar minimal 1 tahun.")
-            
-            if errors:
-                for err in errors:
-                    st.error(f"❌ {err}")
-            elif not st.session_state.get('private_key'):
-                st.error("❌ Private Key belum diinput! Kembali ke halaman utama dan isi Private Key.")
-            else:
-                with st.spinner("⏳ Mengirim transaksi ke blockchain..."):
-                    try:
-                        w3 = st.session_state.w3
-                        contracts = st.session_state.contracts
-                        master_data = contracts['MasterData']
-                        
-                        # Bangun function call
-                        contract_func = master_data.functions.registerVariety(
-                            id_varietas.strip(),
-                            sk_pelepasan.strip(),
-                            int(masa_edar)
-                        )
-                        
-                        # Kirim transaksi
-                        result = build_transaction(
-                            w3,
-                            contract_func,
-                            st.session_state.wallet_address,
-                            st.session_state.private_key
-                        )
-                        
-                        if result['success']:
-                            st.markdown(f"""
-                            <div class="tx-success">
-                                <div style="font-size: 1.2rem; color: #34D399; margin-bottom: 12px;">✅ Varietas Berhasil Didaftarkan!</div>
-                                <div style="font-size: 0.8rem; color: #6EE7B7;">
-                                    <div>🏷️ ID Varietas: <strong>{id_varietas}</strong></div>
-                                    <div>📄 SK Pelepasan: <strong>{sk_pelepasan}</strong></div>
-                                    <div>📅 Masa Edar: <strong>{masa_edar} Tahun</strong></div>
-                                    <div style="margin-top: 10px; font-family: monospace; font-size: 0.7rem;">
-                                        🔗 TX Hash: {result['tx_hash'][:20]}...{result['tx_hash'][-10:]}
-                                    </div>
+        if errors:
+            for err in errors:
+                st.error(f"❌ {err}")
+        elif not st.session_state.get('private_key'):
+            st.error("❌ Private Key belum diinput! Kembali ke halaman utama dan isi Private Key.")
+        else:
+            with st.spinner("⏳ Mengirim transaksi ke blockchain..."):
+                try:
+                    w3 = st.session_state.w3
+                    contracts = st.session_state.contracts
+                    master_data = contracts['MasterData']
+                    
+                    # Bangun function call
+                    contract_func = master_data.functions.registerVariety(
+                        id_varietas,
+                        sk_pelepasan.strip(),
+                        int(masa_edar)
+                    )
+                    
+                    # Kirim transaksi
+                    result = build_transaction(
+                        w3,
+                        contract_func,
+                        st.session_state.wallet_address,
+                        st.session_state.private_key
+                    )
+                    
+                    if result['success']:
+                        st.markdown(f"""
+                        <div class="tx-success">
+                            <div style="font-size: 1.2rem; color: #34D399; margin-bottom: 12px;">✅ Varietas Berhasil Didaftarkan!</div>
+                            <div style="font-size: 0.8rem; color: #6EE7B7;">
+                                <div>🏷️ ID Varietas: <strong>{id_varietas}</strong></div>
+                                <div>📄 SK Pelepasan: <strong>{sk_pelepasan}</strong></div>
+                                <div>📅 Masa Edar: <strong>{masa_edar} Tahun</strong></div>
+                                <div style="margin-top: 10px; font-family: monospace; font-size: 0.7rem;">
+                                    🔗 TX Hash: {result['tx_hash']}
                                 </div>
                             </div>
-                            """, unsafe_allow_html=True)
-                            st.balloons()
-                        else:
-                            st.error(f"❌ Transaksi Gagal: {result['error']}")
-                    except Exception as e:
-                        st.error(f"❌ Error tidak terduga: {str(e)}")
-    
+                        </div>
+                        """, unsafe_allow_html=True)
+                        st.balloons()
+                    else:
+                        st.error(f"❌ Transaksi Gagal: {result['error']}")
+                except Exception as e:
+                    st.error(f"❌ Error tidak terduga: {str(e)}")
+
     st.markdown("</div>", unsafe_allow_html=True)
 
 with col_info:

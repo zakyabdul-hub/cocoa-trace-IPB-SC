@@ -86,40 +86,42 @@ def check_auth():
 # ============================================================
 # FUNGSI HELPER
 # ============================================================
-def validasi_batch_agregasi(batch_ids: list, expected_tingkat_before: int) -> dict:
-    """Validasi batch agregasi sumber — cek existence, isAggregated, dan tingkat."""
+def validasi_batch_agregasi_perusahaan(batch_ids: list, tingkat_tujuan: int) -> dict:
+    """Validasi batch agregasi sumber untuk perusahaan menggunakan aturan VALID_ROUTES."""
     if not st.session_state.get('ganache_connected'):
         return {}
     results = {}
     contracts = st.session_state.contracts
+    traceability = contracts['Traceability']
+    
     for bid in batch_ids:
         bid = bid.strip()
         if not bid:
             continue
         try:
-            data = contracts['Traceability'].functions.dataAgregasi(bid).call()
+            data = traceability.functions.dataAgregasi(bid).call()
             # ABI returns: idBatchBaru, tingkat, totalQty, parameterMutu, pemilik, isAggregated, timestamp
-            id_b, tingkat, qty, mutu, pemilik, is_agg, ts = data
+            id_b, tingkat_sumber, qty, mutu, pemilik, is_agg, ts = data
             
             exists = ts != 0
-            right_level = (tingkat == expected_tingkat_before) if exists else False
-            valid = exists and not is_agg and right_level
+            route_valid = traceability.functions.isValidRoute(tingkat_sumber, tingkat_tujuan).call() if exists else False
+            valid = exists and not is_agg and route_valid
             
             results[bid] = {
                 'exists': exists,
                 'is_aggregated': is_agg,
-                'tingkat': tingkat,
+                'tingkat': tingkat_sumber,
                 'qty': qty,
                 'valid': valid,
                 'reason': (
+                    "✅ Valid" if valid else
                     "belum terdaftar" if not exists else
                     "sudah diagregasi" if is_agg else
-                    f"tingkat salah (ada: {TINGKAT_PROSES_MAP.get(tingkat,'?')}, harusnya: {TINGKAT_PROSES_MAP.get(expected_tingkat_before,'?')})" if not right_level else
-                    "✅ Valid"
+                    f"jalur tidak valid (level sumber: {tingkat_sumber})"
                 )
             }
-        except Exception:
-            results[bid] = {'exists': False, 'valid': False, 'reason': 'error'}
+        except Exception as e:
+            results[bid] = {'exists': False, 'valid': False, 'reason': f"Error: {e}"}
     return results
 
 # ============================================================
@@ -129,11 +131,11 @@ st.markdown("""
 <div class="page-header">
     <div style="font-size: 2rem; margin-bottom: 8px;">🏭</div>
     <div style="font-family: 'Space Grotesk', sans-serif; font-size: 1.8rem; font-weight: 700; color: #FCA5A5;">
-        F5 — Agregasi Batch Perusahaan
+        F5 — Agregasi Batch Perusahaan (Multi-Level)
     </div>
     <div style="color: #FECACA; font-size: 0.95rem; margin-top: 8px;">
-        Pemrosesan agregasi berjenjang: GudangKab → GudangPelabuhan → Pusat.
-        Setiap tingkat hanya bisa menarik dari tingkat di bawahnya (chaining validation).
+        Pemrosesan agregasi perusahaan: GudangKab (L5) → GudangPelabuhan (L6) → Pusat (L7).
+        Sistem memvalidasi rute ketertelusuran alur secara dinamis.
     </div>
     <div style="margin-top: 12px; font-size: 0.75rem; color: #FCA5A5;">
         📋 Smart Contract: <code style="background: rgba(220,38,38,0.1); padding: 2px 8px; border-radius: 4px;">Traceability.createCompanyBatch()</code>
@@ -148,17 +150,14 @@ if not check_auth():
 # ============================================================
 # HIERARKI VISUAL
 # ============================================================
-st.markdown("**🏗️ Hierarki Rantai Pasok Perusahaan:**")
+st.markdown("**🏗️ Hierarki Rantai Pasok Perusahaan (Level 5-7):**")
 col_h0, col_h1, col_h2, col_h3 = st.columns(4)
 
 tingkat_options = {
-    "GudangKab (Level 1)": 1,
-    "GudangPelabuhan (Level 2)": 2,
-    "Pusat (Level 3)": 3,
+    "GudangKab (Level 5)": 5,
+    "GudangPelabuhan (Level 6)": 6,
+    "Pusat (Level 7)": 7,
 }
-
-# Pilih tingkat sekarang
-selected_tingkat_label = None
 
 # ============================================================
 # SESSION STATE
@@ -168,7 +167,11 @@ if 'company_batches' not in st.session_state:
 if 'company_batch_validation' not in st.session_state:
     st.session_state.company_batch_validation = {}
 if 'selected_tingkat' not in st.session_state:
-    st.session_state.selected_tingkat = 1
+    st.session_state.selected_tingkat = 5
+if 'generated_id_perusahaan' not in st.session_state:
+    st.session_state.generated_id_perusahaan = ""
+if 'prefilled_nama_perusahaan' not in st.session_state:
+    st.session_state.prefilled_nama_perusahaan = ""
 
 # ============================================================
 # LAYOUT
@@ -187,48 +190,82 @@ with col_form:
     tingkat_col1, tingkat_col2, tingkat_col3 = st.columns(3)
     
     with tingkat_col1:
-        if st.button("🏠 GudangKab\n(Level 1)", key="t1", use_container_width=True):
-            st.session_state.selected_tingkat = 1
+        if st.button("🏠 GudangKab\n(Level 5)", key="t5", use_container_width=True, type="primary" if st.session_state.selected_tingkat == 5 else "secondary"):
+            st.session_state.selected_tingkat = 5
             st.session_state.company_batches = []
             st.session_state.company_batch_validation = {}
+            st.session_state.generated_id_perusahaan = ""
+            st.rerun()
     with tingkat_col2:
-        if st.button("🚢 GudangPelabuhan\n(Level 2)", key="t2", use_container_width=True):
-            st.session_state.selected_tingkat = 2
+        if st.button("🚢 GudangPelabuhan\n(Level 6)", key="t6", use_container_width=True, type="primary" if st.session_state.selected_tingkat == 6 else "secondary"):
+            st.session_state.selected_tingkat = 6
             st.session_state.company_batches = []
             st.session_state.company_batch_validation = {}
+            st.session_state.generated_id_perusahaan = ""
+            st.rerun()
     with tingkat_col3:
-        if st.button("🏛️ Pusat\n(Level 3)", key="t3", use_container_width=True):
-            st.session_state.selected_tingkat = 3
+        if st.button("🏛️ Pusat\n(Level 7)", key="t7", use_container_width=True, type="primary" if st.session_state.selected_tingkat == 7 else "secondary"):
+            st.session_state.selected_tingkat = 7
             st.session_state.company_batches = []
             st.session_state.company_batch_validation = {}
+            st.session_state.generated_id_perusahaan = ""
+            st.rerun()
     
     selected_tingkat = st.session_state.selected_tingkat
-    expected_prev_level = selected_tingkat - 1  # Level yang diizinkan sebagai sumber
     
-    # Tampilkan tingkat yang dipilih
-    tingkat_names = {1: "🏠 GudangKab", 2: "🚢 GudangPelabuhan", 3: "🏛️ Pusat"}
-    sumber_names = {0: "📦 Batch Pengepul", 1: "🏠 GudangKab", 2: "🚢 GudangPelabuhan"}
+    # Tampilkan tingkat yang dipilih dan aturan routing
+    from config import VALID_ROUTES, TINGKAT_PROSES_MAP
+    
+    # Tentukan sumber yang diizinkan berdasarkan VALID_ROUTES
+    allowed_sources_levels = []
+    for src, tgts in VALID_ROUTES.items():
+        if selected_tingkat in tgts:
+            allowed_sources_levels.append(src)
+            
+    allowed_sources_str = ", ".join([TINGKAT_PROSES_MAP.get(l, str(l)) for l in allowed_sources_levels])
     
     st.markdown(f"""
     <div style="background: rgba(220,38,38,0.08); border: 1px solid rgba(220,38,38,0.25); 
          border-radius: 10px; padding: 12px; margin: 12px 0; font-size: 0.85rem;">
         <span style="color: #FCA5A5;">🎯 Tingkat Dipilih:</span> 
-        <strong style="color: #F87171;">{tingkat_names.get(selected_tingkat, '?')}</strong>
-        &nbsp;|&nbsp;
+        <strong style="color: #F87171;">{TINGKAT_PROSES_MAP.get(selected_tingkat, '?')}</strong>
+        <br/>
         <span style="color: #FCA5A5;">📥 Sumber yang Diizinkan:</span>
-        <strong style="color: #F87171;">{sumber_names.get(expected_prev_level, '?')}</strong>
+        <strong style="color: #F87171;">{allowed_sources_str}</strong>
     </div>
     """, unsafe_allow_html=True)
     
-    st.markdown("---")
-    
-    # Form Detail
+    st.markdown("**📋 Informasi Batch Perusahaan Baru**")
+    col_gen_comp, col_gen_date = st.columns(2)
+    with col_gen_comp:
+        g_nama_c = st.text_input("Nama Perusahaan / Gudang *", placeholder="Contoh: PT_CACAO_EXPORT", key="g_comp_name")
+    with col_gen_date:
+        g_date_c = st.date_input("Tanggal Input *", value=datetime.today(), key="g_comp_date")
+
+    # Dynamic real-time sequence and ID calculation
+    id_batch_baru = ""
+    seq = ""
+    if g_nama_c.strip():
+        from config import ID_PREFIX
+        from utils import get_next_sequence_batch, generate_agregasi_id, normalize_name
+        prefix = ID_PREFIX.get(selected_tingkat, "COMP")
+        ddmmyy = g_date_c.strftime("%d%m%y")
+        search_prefix = f"{prefix}-{normalize_name(g_nama_c.strip())}-{ddmmyy}-"
+        
+        if st.session_state.get('ganache_connected'):
+            traceability = st.session_state.contracts['Traceability']
+            seq = get_next_sequence_batch(traceability, selected_tingkat, search_prefix)
+            id_batch_baru = generate_agregasi_id(prefix, g_nama_c.strip(), ddmmyy, seq)
+        else:
+            id_batch_baru = f"{prefix}-{normalize_name(g_nama_c.strip())}-{ddmmyy}-001"
+
     col_id, col_qty = st.columns(2)
     with col_id:
-        id_batch_baru = st.text_input(
-            "🏷️ ID Batch Perusahaan Baru *",
-            placeholder="COMP-GK-001",
-            help="ID unik untuk batch perusahaan ini"
+        st.text_input(
+            "🏷️ ID Batch Perusahaan Baru (Otomatis) *",
+            value=id_batch_baru,
+            disabled=True,
+            help="ID unik untuk batch perusahaan ini yang dihasilkan secara otomatis."
         )
     with col_qty:
         total_qty = st.number_input(
@@ -238,9 +275,11 @@ with col_form:
             value=5000,
             step=100
         )
-    
+    if seq:
+        st.caption(f"ℹ️ Nomor Urut Batch terdeteksi di blockchain: **#{seq}**")
+
     keterangan_mutu = st.text_area(
-        "📋 Keterangan Parameter Mutu",
+        "📋 Keterangan Parameter Mutu *",
         placeholder="Contoh: Kadar air 7.5%, fermentasi baik, bebas aflatoksin...",
         height=80,
         help="Deskripsi parameter mutu kakao"
@@ -249,45 +288,24 @@ with col_form:
     st.markdown("---")
     
     # Pilih Batch Sumber
-    st.markdown(f"**📥 Pilih Batch Sumber ({sumber_names.get(expected_prev_level, '?')})**")
+    st.markdown(f"**📥 Pilih Batch Sumber ({allowed_sources_str})**")
 
-    with st.expander(f"📊 Lihat Daftar Batch {sumber_names.get(expected_prev_level, '?')} Tersedia", expanded=False):
-        if st.session_state.get('ganache_connected'):
-            try:
-                traceability = st.session_state.contracts['Traceability']
-                all_ids = traceability.functions.getBatchIdsByLevel(expected_prev_level).call()
-                data_batch = []
-                for bid in all_ids:
-                    try:
-                        bdata = traceability.functions.dataAgregasi(bid).call()
-                        if not bdata[5]: # Belum diagregasi
-                            data_batch.append({
-                                "ID Batch": bdata[0],
-                                "Total Qty (Kg)": bdata[2],
-                                "Parameter Mutu": bdata[3]
-                            })
-                    except Exception:
-                        pass
-                if data_batch:
-                    st.dataframe(data_batch, use_container_width=True, hide_index=True)
-                else:
-                    st.info(f"Tidak ada batch {sumber_names.get(expected_prev_level, '?')} yang tersedia.")
-            except Exception as e:
-                st.error(f"Gagal memuat batch sumber: {e}")
-    # Ambil daftar batch sumber yang tersedia
+    # Ambil daftar batch sumber yang tersedia berdasarkan level input yang valid
     available_sources = []
     if st.session_state.get('ganache_connected'):
         try:
             traceability = st.session_state.contracts['Traceability']
-            all_ids = traceability.functions.getBatchIdsByLevel(expected_prev_level).call()
-            for bid in all_ids:
-                try:
-                    data = traceability.functions.dataAgregasi(bid).call()
-                    # data = (idBatchBaru, tingkat, totalQty, parameterMutu, pemilik, isAggregated, timestamp)
-                    if not data[5] and bid not in st.session_state.company_batches: # isAggregated == False
-                        available_sources.append(bid)
-                except Exception:
-                    pass
+            
+            for s_lvl in allowed_sources_levels:
+                all_ids = traceability.functions.getBatchIdsByLevel(s_lvl).call()
+                for bid in all_ids:
+                    try:
+                        data = traceability.functions.dataAgregasi(bid).call()
+                        # data = (idBatchBaru, tingkat, totalQty, parameterMutu, pemilik, isAggregated, timestamp)
+                        if not data[5] and bid not in st.session_state.company_batches: # isAggregated == False
+                            available_sources.append(bid)
+                    except Exception:
+                        pass
         except Exception:
             pass
 
@@ -296,7 +314,7 @@ with col_form:
         new_source = st.selectbox(
             "ID Batch Sumber",
             options=[""] + available_sources,
-            format_func=lambda x: f"Pilih Batch {sumber_names.get(expected_prev_level, '?')} Tersedia..." if x == "" else x,
+            format_func=lambda x: "Pilih Batch Sumber Tersedia..." if x == "" else x,
             key="new_source",
             label_visibility="collapsed",
             disabled=len(available_sources) == 0
@@ -331,7 +349,7 @@ with col_form:
         with col_vld:
             if st.button("🔍 Validasi Sumber", key="btn_val_company"):
                 with st.spinner("Validasi ke blockchain..."):
-                    results = validasi_batch_agregasi(st.session_state.company_batches, expected_prev_level)
+                    results = validasi_batch_agregasi_perusahaan(st.session_state.company_batches, selected_tingkat)
                     st.session_state.company_batch_validation = results
                     st.rerun()
         with col_clr:
@@ -340,7 +358,7 @@ with col_form:
                 st.session_state.company_batch_validation = {}
                 st.rerun()
     else:
-        st.info(f"📋 Tambahkan ID Batch dari {sumber_names.get(expected_prev_level, '?')} sebagai sumber.")
+        st.info(f"📋 Tambahkan ID Batch dari {allowed_sources_str} sebagai sumber.")
     
     st.markdown("---")
     st.markdown(f"""
@@ -350,7 +368,7 @@ with col_form:
     """, unsafe_allow_html=True)
     
     if st.button(
-        f"🏭 Buat Batch Perusahaan - {tingkat_names.get(selected_tingkat,'?')}",
+        f"🏭 Buat Batch Perusahaan - {TINGKAT_PROSES_MAP.get(selected_tingkat,'?')}",
         key="btn_submit_company",
         use_container_width=True
     ):
@@ -380,7 +398,7 @@ with col_form:
                         contract_func = traceability.functions.createCompanyBatch(
                             id_batch_baru.strip(),
                             batch_list,
-                            int(selected_tingkat),  # TingkatProses enum
+                            int(selected_tingkat),  # TingkatProses enum (5, 6, 7)
                             int(total_qty),
                             keterangan_mutu.strip()
                         )
@@ -398,7 +416,7 @@ with col_form:
                                 <div style="font-size: 1.2rem; color: #FCA5A5; margin-bottom: 12px;">✅ Batch Perusahaan Berhasil Dibuat!</div>
                                 <table style="font-size: 0.8rem; color: #FECACA; width: 100%;">
                                     <tr><td style="color: #FCA5A5; padding: 3px 0;">🏭 ID Batch</td><td><strong>{id_batch_baru}</strong></td></tr>
-                                    <tr><td style="color: #FCA5A5; padding: 3px 0;">🏗️ Tingkat</td><td><strong>{tingkat_names.get(selected_tingkat,'?')}</strong></td></tr>
+                                    <tr><td style="color: #FCA5A5; padding: 3px 0;">🏗️ Tingkat</td><td><strong>{TINGKAT_PROSES_MAP.get(selected_tingkat,'?')}</strong></td></tr>
                                     <tr><td style="color: #FCA5A5; padding: 3px 0;">📥 Batch Sumber</td><td>{len(batch_list)} Batch</td></tr>
                                     <tr><td style="color: #FCA5A5; padding: 3px 0;">⚖️ Total Qty</td><td><strong>{total_qty:,} Kg</strong></td></tr>
                                     <tr><td style="color: #FCA5A5; padding: 3px 0;">🔗 TX Hash</td>
@@ -423,25 +441,25 @@ with col_info:
     <div class="form-card">
         <div style="font-family: 'Space Grotesk', sans-serif; font-size: 1rem; font-weight: 600; 
              color: #FCA5A5; margin-bottom: 16px;">🏗️ Hierarki Rantai Pasok</div>
-        <div style="font-size: 0.82rem; color: #FECACA; line-height: 2.2; text-align: center;">
+        <div style="font-size: 0.82rem; color: #FECACA; line-height: 2.0; text-align: center;">
             <div style="background: rgba(220,38,38,0.15); border-radius: 8px; padding: 8px; margin: 4px 0;">
-                🏛️ <strong>Pusat (Level 3)</strong><br>
-                <span style="font-size: 0.7rem; color: #FCA5A5;">Menarik dari GudangPelabuhan</span>
+                🏛️ <strong>Pusat / Eksportir (Level 7)</strong><br>
+                <span style="font-size: 0.7rem; color: #FCA5A5;">Menarik dari GudangPelabuhan, GudangKab, dsb.</span>
             </div>
             <div style="color: #DC2626;">↑</div>
             <div style="background: rgba(220,38,38,0.1); border-radius: 8px; padding: 8px; margin: 4px 0;">
-                🚢 <strong>GudangPelabuhan (Level 2)</strong><br>
-                <span style="font-size: 0.7rem; color: #FCA5A5;">Menarik dari GudangKab</span>
+                🚢 <strong>GudangPelabuhan (Level 6)</strong><br>
+                <span style="font-size: 0.7rem; color: #FCA5A5;">Menarik dari GudangKab / Pengepul</span>
             </div>
             <div style="color: #DC2626;">↑</div>
             <div style="background: rgba(220,38,38,0.08); border-radius: 8px; padding: 8px; margin: 4px 0;">
-                🏠 <strong>GudangKab (Level 1)</strong><br>
-                <span style="font-size: 0.7rem; color: #FCA5A5;">Menarik dari Batch Pengepul</span>
+                🏠 <strong>GudangKab (Level 5)</strong><br>
+                <span style="font-size: 0.7rem; color: #FCA5A5;">Menarik dari Pengepul (Tk. 3 & 4)</span>
             </div>
             <div style="color: #DC2626;">↑</div>
             <div style="background: rgba(245,158,11,0.08); border-radius: 8px; padding: 8px; margin: 4px 0;">
-                📦 <strong>Pengepul (Level 0)</strong><br>
-                <span style="font-size: 0.7rem; color: #FCD34D;">Agregasi dari Petani</span>
+                📦 <strong>Pengepul (Level 0 - 4)</strong><br>
+                <span style="font-size: 0.7rem; color: #FCD34D;">Tingkat Kelompok Tani s.d Luar Kabupaten</span>
             </div>
         </div>
     </div>
@@ -503,9 +521,9 @@ with col_ref5:
     refresh_company = st.button("🔄 Muat / Refresh", key="btn_refresh_company")
 
 tab_gk, tab_gp, tab_pusat = st.tabs([
-    "🏠 GudangKab (Level 1)",
-    "🚢 GudangPelabuhan (Level 2)",
-    "🏛️ Pusat (Level 3)"
+    "🏠 GudangKab (Level 5)",
+    "🚢 GudangPelabuhan (Level 6)",
+    "🏛️ Pusat (Level 7)"
 ])
 
 def render_company_batch_list(level: int, tab, level_name: str, color: str):
@@ -564,7 +582,7 @@ def render_company_batch_list(level: int, tab, level_name: str, color: str):
         else:
             st.info(f"👆 Klik **Muat / Refresh** di atas untuk memuat daftar batch {level_name}.")
 
-render_company_batch_list(1, tab_gk,    "GudangKab",       "#FCA5A5")
-render_company_batch_list(2, tab_gp,    "GudangPelabuhan", "#F87171")
-render_company_batch_list(3, tab_pusat, "Pusat",           "#EF4444")
+render_company_batch_list(5, tab_gk,    "GudangKab",       "#FCA5A5")
+render_company_batch_list(6, tab_gp,    "GudangPelabuhan", "#F87171")
+render_company_batch_list(7, tab_pusat, "Pusat",           "#EF4444")
 
