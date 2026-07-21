@@ -14,6 +14,10 @@ from io import BytesIO
 
 from config import TINGKAT_PROSES_MAP
 
+# Path setup
+sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
+from style_adminhmd import inject_adminhmd_theme
+
 # ============================================================
 # KONFIGURASI HALAMAN
 # ============================================================
@@ -23,88 +27,26 @@ st.set_page_config(
     layout="wide"
 )
 
+inject_adminhmd_theme()
+
+# Top Navbar Header
 st.markdown("""
-<style>
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@500;600;700&family=Space+Mono:wght@400;700&display=swap');
-.stApp { background: linear-gradient(135deg, #06050F 0%, #040408 100%) !important; color: #F0EEFF !important; }
-[data-testid="stSidebar"] { background: #040408 !important; border-right: 1px solid rgba(124,58,237,0.2) !important; }
-.page-header {
-    background: linear-gradient(135deg, rgba(124,58,237,0.15) 0%, rgba(167,139,250,0.08) 100%);
-    border: 1px solid rgba(124,58,237,0.2); border-radius: 20px; padding: 32px; margin-bottom: 24px;
-    border-left: 4px solid #7C3AED;
-}
-.traceback-container {
-    background: rgba(124,58,237,0.04); border: 1px solid rgba(124,58,237,0.15);
-    border-radius: 20px; padding: 28px; margin: 16px 0;
-}
-.trace-node {
-    background: rgba(124,58,237,0.08); border: 1px solid rgba(167,139,250,0.2);
-    border-radius: 14px; padding: 16px; margin: 8px 0;
-    position: relative; transition: all 0.3s ease;
-}
-.trace-node:hover { border-color: rgba(167,139,250,0.5); transform: translateX(4px); }
-.trace-node.level-pusat { border-left: 4px solid #DC2626; }
-.trace-node.level-pelabuhan { border-left: 4px solid #D97706; }
-.trace-node.level-gudangkab { border-left: 4px solid #0284C7; }
-.trace-node.level-pengepul { border-left: 4px solid #059669; }
-.trace-node.level-panen { border-left: 4px solid #4ADE80; }
-.trace-node.level-lahan { border-left: 4px solid #38BDF8; }
-.trace-node.level-varietas { border-left: 4px solid #34D399; }
-.trace-connector {
-    color: rgba(124,58,237,0.5); font-size: 1.2rem;
-    margin-left: 24px; display: block; padding: 4px 0;
-}
-.trace-badge {
-    display: inline-block; padding: 3px 10px; border-radius: 12px;
-    font-size: 0.7rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em;
-}
-.badge-pusat { background: rgba(220,38,38,0.2); color: #FCA5A5; }
-.badge-pelabuhan { background: rgba(217,119,6,0.2); color: #FCD34D; }
-.badge-gudangkab { background: rgba(2,132,199,0.2); color: #7DD3FC; }
-.badge-pengepul { background: rgba(5,150,105,0.2); color: #34D399; }
-.badge-panen { background: rgba(74,222,128,0.15); color: #86EFAC; }
-.badge-lahan { background: rgba(56,189,248,0.15); color: #7DD3FC; }
-.badge-varietas { background: rgba(52,211,153,0.15); color: #6EE7B7; }
-.deforest-ok { color: #4ADE80; font-size: 0.8rem; }
-.deforest-no { color: #EF4444; font-size: 0.8rem; }
-.stTextInput > div > div > input {
-    background: rgba(124,58,237,0.05) !important; border: 1px solid rgba(124,58,237,0.25) !important;
-    border-radius: 10px !important; color: #F0EEFF !important; font-size: 1rem !important;
-}
-.stButton > button {
-    background: linear-gradient(135deg, #7C3AED, #8B5CF6) !important; color: white !important;
-    border: none !important; border-radius: 10px !important; font-weight: 600 !important;
-    padding: 0.6rem 2rem !important; transition: all 0.3s !important;
-}
-.stButton > button:hover { transform: translateY(-2px) !important; box-shadow: 0 8px 24px rgba(124,58,237,0.4) !important; }
-.stDownloadButton > button {
-    background: linear-gradient(135deg, #059669, #10B981) !important; color: white !important;
-    border: none !important; border-radius: 10px !important; font-weight: 700 !important;
-    font-size: 1rem !important; padding: 0.7rem 2rem !important; width: 100% !important;
-}
-#MainMenu { visibility: hidden; }
-footer { visibility: hidden; }
-</style>
+<div class="admin-topbar">
+    <div class="admin-topbar-title">
+        <span style="font-size: 1.5rem;">🔍</span> F6 — Riwayat Ketertelusuran Rantai Pasok
+    </div>
+    <div class="admin-topbar-meta">
+        <span class="admin-badge badge-admin">Aktor: Semua Pengguna</span>
+        <span class="admin-badge badge-connected">Traceability.getSumberAgregasi()</span>
+    </div>
+</div>
 """, unsafe_allow_html=True)
 
-
-# ============================================================
-# HEADER
-# ============================================================
+# Page Header
 st.markdown("""
-<div class="page-header">
-    <div style="font-size: 2rem; margin-bottom: 8px;">🔍</div>
-    <div style="font-family: 'Space Grotesk', sans-serif; font-size: 1.8rem; font-weight: 700; color: #A78BFA;">
-        F6 — Riwayat Ketertelusuran
-    </div>
-    <div style="color: #C4B5FD; font-size: 0.95rem; margin-top: 8px;">
-        Lacak riwayat lengkap rantai pasok kakao secara rekursif dari hilir ke hulu.
-        Visualisasi pohon ketertelusuran interaktif + Ekspor laporan PDF.
-    </div>
-    <div style="margin-top: 12px; font-size: 0.75rem; color: #A78BFA;">
-        👤 Aktor: <strong>Semua Pengguna (Publik)</strong> &nbsp;|&nbsp;
-        📋 Fungsi: <code style="background: rgba(124,58,237,0.1); padding: 2px 8px; border-radius: 4px;">getSumberAgregasi() → rekursif</code>
-    </div>
+<div class="admin-page-header">
+    <h1>Riwayat Ketertelusuran Rekursif (Traceback)</h1>
+    <p>Lacak riwayat lengkap rantai pasok kakao secara rekursif dari hilir ke hulu, termasuk asal lahan & status deforestasi.</p>
 </div>
 """, unsafe_allow_html=True)
 

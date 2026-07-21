@@ -13,6 +13,10 @@ from datetime import datetime
 
 from config import build_transaction, TINGKAT_PROSES_MAP, TINGKAT_LABEL_MAP
 
+# Path setup
+sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
+from style_adminhmd import inject_adminhmd_theme
+
 # ============================================================
 # KONFIGURASI HALAMAN
 # ============================================================
@@ -22,52 +26,7 @@ st.set_page_config(
     layout="wide"
 )
 
-st.markdown("""
-<style>
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap');
-.stApp { background: linear-gradient(135deg, #120008 0%, #0D0006 100%) !important; color: #FFF5F7 !important; }
-[data-testid="stSidebar"] { background: #0D0006 !important; border-right: 1px solid rgba(220,38,38,0.2) !important; }
-.page-header {
-    background: linear-gradient(135deg, rgba(220,38,38,0.15) 0%, rgba(239,68,68,0.08) 100%);
-    border: 1px solid rgba(220,38,38,0.2); border-radius: 20px; padding: 32px; margin-bottom: 24px;
-    border-left: 4px solid #DC2626;
-}
-.form-card {
-    background: rgba(220,38,38,0.04); border: 1px solid rgba(220,38,38,0.12);
-    border-radius: 16px; padding: 28px; margin: 12px 0;
-}
-.hierarchy-card {
-    background: rgba(220,38,38,0.06); border: 1px solid rgba(220,38,38,0.15);
-    border-radius: 12px; padding: 16px; text-align: center;
-    transition: all 0.3s ease;
-}
-.hierarchy-card.active {
-    background: rgba(220,38,38,0.15); border: 2px solid rgba(220,38,38,0.5);
-    box-shadow: 0 0 20px rgba(220,38,38,0.2);
-}
-.batch-chip { display: inline-block; margin: 4px; padding: 4px 12px;
-    background: rgba(220,38,38,0.1); border: 1px solid rgba(239,68,68,0.3);
-    border-radius: 20px; font-size: 0.75rem; color: #FCA5A5; }
-.batch-chip.valid { border-color: rgba(52,211,153,0.5); color: #34D399; background: rgba(5,150,105,0.1); }
-.batch-chip.invalid { border-color: rgba(239,68,68,0.6); color: #F87171; background: rgba(239,68,68,0.1); }
-.tx-success {
-    background: linear-gradient(135deg, rgba(220,38,38,0.12), rgba(239,68,68,0.06));
-    border: 1px solid rgba(220,38,38,0.4); border-radius: 12px; padding: 20px;
-}
-.stTextInput > div > div > input, .stNumberInput > div > div > input, .stTextArea > div > div > textarea {
-    background: rgba(220,38,38,0.04) !important; border: 1px solid rgba(220,38,38,0.2) !important;
-    border-radius: 10px !important; color: #FFF5F7 !important;
-}
-.stButton > button {
-    background: linear-gradient(135deg, #DC2626, #EF4444) !important; color: white !important;
-    border: none !important; border-radius: 10px !important; font-weight: 700 !important;
-    padding: 0.6rem 2rem !important; transition: all 0.3s !important;
-}
-.stButton > button:hover { transform: translateY(-2px) !important; box-shadow: 0 8px 24px rgba(239,68,68,0.3) !important; }
-#MainMenu { visibility: hidden; }
-footer { visibility: hidden; }
-</style>
-""", unsafe_allow_html=True)
+inject_adminhmd_theme()
 
 # ============================================================
 # GUARD
@@ -124,23 +83,24 @@ def validasi_batch_agregasi_perusahaan(batch_ids: list, tingkat_tujuan: int) -> 
             results[bid] = {'exists': False, 'valid': False, 'reason': f"Error: {e}"}
     return results
 
-# ============================================================
-# HEADER
-# ============================================================
+# Top Navbar Header
 st.markdown("""
-<div class="page-header">
-    <div style="font-size: 2rem; margin-bottom: 8px;">🏭</div>
-    <div style="font-family: 'Space Grotesk', sans-serif; font-size: 1.8rem; font-weight: 700; color: #FCA5A5;">
-        F5 — Agregasi Batch Perusahaan (Multi-Level)
+<div class="admin-topbar">
+    <div class="admin-topbar-title">
+        <span style="font-size: 1.5rem;">🏭</span> F5 — Agregasi Batch Perusahaan (Level 5 - 7)
     </div>
-    <div style="color: #FECACA; font-size: 0.95rem; margin-top: 8px;">
-        Pemrosesan agregasi perusahaan: GudangKab (L5) → GudangPelabuhan (L6) → Pusat (L7).
-        Sistem memvalidasi rute ketertelusuran alur secara dinamis.
+    <div class="admin-topbar-meta">
+        <span class="admin-badge badge-perusahaan">Aktor: Perusahaan</span>
+        <span class="admin-badge badge-connected">Traceability.createCompanyBatch()</span>
     </div>
-    <div style="margin-top: 12px; font-size: 0.75rem; color: #FCA5A5;">
-        📋 Smart Contract: <code style="background: rgba(220,38,38,0.1); padding: 2px 8px; border-radius: 4px;">Traceability.createCompanyBatch()</code>
-        &nbsp;|&nbsp; 👤 Aktor: <strong>Perusahaan</strong>
-    </div>
+</div>
+""", unsafe_allow_html=True)
+
+# Page Header
+st.markdown("""
+<div class="admin-page-header">
+    <h1>Agregasi Perusahaan Multi-Level</h1>
+    <p>Pemrosesan agregasi berjenjang perusahaan: GudangKab (L5) → GudangPelabuhan (L6) → Pusat (L7).</p>
 </div>
 """, unsafe_allow_html=True)
 

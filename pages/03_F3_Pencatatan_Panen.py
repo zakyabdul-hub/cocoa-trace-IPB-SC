@@ -12,6 +12,10 @@ from datetime import datetime
 
 from config import build_transaction
 
+# Path setup
+sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
+from style_adminhmd import inject_adminhmd_theme
+
 # ============================================================
 # KONFIGURASI HALAMAN
 # ============================================================
@@ -21,52 +25,7 @@ st.set_page_config(
     layout="wide"
 )
 
-st.markdown("""
-<style>
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap');
-.stApp { background: linear-gradient(135deg, #0A100A 0%, #050C05 100%) !important; color: #F0FFF0 !important; }
-[data-testid="stSidebar"] { background: #050C05 !important; border-right: 1px solid rgba(74,222,128,0.2) !important; }
-.page-header {
-    background: linear-gradient(135deg, rgba(5,150,105,0.15) 0%, rgba(16,185,129,0.08) 100%);
-    border: 1px solid rgba(74,222,128,0.2); border-radius: 20px; padding: 32px; margin-bottom: 24px;
-    border-left: 4px solid #059669;
-}
-.form-card {
-    background: rgba(5,150,105,0.05); border: 1px solid rgba(74,222,128,0.15);
-    border-radius: 16px; padding: 28px; margin: 12px 0;
-}
-.ferment-badge-yes {
-    background: linear-gradient(135deg, rgba(16,185,129,0.2), rgba(52,211,153,0.1));
-    border: 1px solid rgba(52,211,153,0.4); border-radius: 8px; padding: 8px 16px;
-    color: #4ADE80; font-size: 0.85rem; text-align: center; font-weight: 600;
-}
-.ferment-badge-no {
-    background: linear-gradient(135deg, rgba(245,158,11,0.1), rgba(245,158,11,0.05));
-    border: 1px solid rgba(245,158,11,0.3); border-radius: 8px; padding: 8px 16px;
-    color: #FCD34D; font-size: 0.85rem; text-align: center;
-}
-.tx-success {
-    background: linear-gradient(135deg, rgba(5,150,105,0.15), rgba(16,185,129,0.08));
-    border: 1px solid rgba(52,211,153,0.4); border-radius: 12px; padding: 20px;
-}
-.result-card {
-    background: rgba(5,150,105,0.05); border: 1px solid rgba(52,211,153,0.15);
-    border-radius: 12px; padding: 14px; margin: 8px 0;
-}
-.stTextInput > div > div > input, .stNumberInput > div > div > input {
-    background: rgba(5,150,105,0.05) !important; border: 1px solid rgba(74,222,128,0.2) !important;
-    border-radius: 10px !important; color: #F0FFF0 !important;
-}
-.stButton > button {
-    background: linear-gradient(135deg, #059669, #10B981) !important; color: white !important;
-    border: none !important; border-radius: 10px !important; font-weight: 600 !important;
-    padding: 0.6rem 2rem !important; transition: all 0.3s !important;
-}
-.stButton > button:hover { transform: translateY(-2px) !important; box-shadow: 0 8px 24px rgba(52,211,153,0.3) !important; }
-#MainMenu { visibility: hidden; }
-footer { visibility: hidden; }
-</style>
-""", unsafe_allow_html=True)
+inject_adminhmd_theme()
 
 # ============================================================
 # GUARD
@@ -82,22 +41,24 @@ def check_auth():
         return False
     return True
 
-# ============================================================
-# HEADER
-# ============================================================
+# Top Navbar Header
 st.markdown("""
-<div class="page-header">
-    <div style="font-size: 2rem; margin-bottom: 8px;">🌾</div>
-    <div style="font-family: 'Space Grotesk', sans-serif; font-size: 1.8rem; font-weight: 700; color: #4ADE80;">
-        F3 — Pencatatan Panen
+<div class="admin-topbar">
+    <div class="admin-topbar-title">
+        <span style="font-size: 1.5rem;">🌾</span> F3 — Pencatatan Hasil Panen Kakao
     </div>
-    <div style="color: #86EFAC; font-size: 0.95rem; margin-top: 8px;">
-        Mencatat hasil panen harian dari lahan terdaftar ke blockchain sebagai aset batch panen yang terverifikasi.
+    <div class="admin-topbar-meta">
+        <span class="admin-badge badge-petani">Aktor: Petani</span>
+        <span class="admin-badge badge-connected">Traceability.createHarvestBatch()</span>
     </div>
-    <div style="margin-top: 12px; font-size: 0.75rem; color: #4ADE80;">
-        📋 Smart Contract: <code style="background: rgba(74,222,128,0.1); padding: 2px 8px; border-radius: 4px;">Traceability.createHarvestBatch()</code>
-        &nbsp;|&nbsp; 👤 Aktor: <strong>Petani</strong>
-    </div>
+</div>
+""", unsafe_allow_html=True)
+
+# Page Header
+st.markdown("""
+<div class="admin-page-header">
+    <h1>Pencatatan Hasil Panen Petani</h1>
+    <p>Catat hasil panen harian dari lahan terdaftar ke blockchain sebagai aset batch panen awal yang terverifikasi.</p>
 </div>
 """, unsafe_allow_html=True)
 

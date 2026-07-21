@@ -12,6 +12,10 @@ from datetime import datetime
 
 from config import build_transaction
 
+# Path setup
+sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
+from style_adminhmd import inject_adminhmd_theme
+
 # ============================================================
 # KONFIGURASI HALAMAN
 # ============================================================
@@ -21,45 +25,7 @@ st.set_page_config(
     layout="wide"
 )
 
-st.markdown("""
-<style>
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap');
-.stApp { background: linear-gradient(135deg, #0F0A00 0%, #0A0700 100%) !important; color: #FFFBEB !important; }
-[data-testid="stSidebar"] { background: #0A0700 !important; border-right: 1px solid rgba(245,158,11,0.2) !important; }
-.page-header {
-    background: linear-gradient(135deg, rgba(217,119,6,0.15) 0%, rgba(245,158,11,0.08) 100%);
-    border: 1px solid rgba(245,158,11,0.2); border-radius: 20px; padding: 32px; margin-bottom: 24px;
-    border-left: 4px solid #D97706;
-}
-.form-card {
-    background: rgba(217,119,6,0.05); border: 1px solid rgba(245,158,11,0.15);
-    border-radius: 16px; padding: 28px; margin: 12px 0;
-}
-.batch-chip {
-    display: inline-block; margin: 4px; padding: 4px 12px;
-    background: rgba(217,119,6,0.15); border: 1px solid rgba(245,158,11,0.3);
-    border-radius: 20px; font-size: 0.75rem; color: #FCD34D;
-}
-.batch-chip.valid { border-color: rgba(52,211,153,0.5); color: #34D399; background: rgba(5,150,105,0.1); }
-.batch-chip.invalid { border-color: rgba(239,68,68,0.5); color: #F87171; background: rgba(239,68,68,0.08); }
-.tx-success {
-    background: linear-gradient(135deg, rgba(217,119,6,0.15), rgba(245,158,11,0.08));
-    border: 1px solid rgba(245,158,11,0.4); border-radius: 12px; padding: 20px;
-}
-.stTextInput > div > div > input, .stNumberInput > div > div > input {
-    background: rgba(217,119,6,0.05) !important; border: 1px solid rgba(245,158,11,0.2) !important;
-    border-radius: 10px !important; color: #FFFBEB !important;
-}
-.stButton > button {
-    background: linear-gradient(135deg, #D97706, #F59E0B) !important; color: #0A0700 !important;
-    border: none !important; border-radius: 10px !important; font-weight: 700 !important;
-    padding: 0.6rem 2rem !important; transition: all 0.3s !important;
-}
-.stButton > button:hover { transform: translateY(-2px) !important; box-shadow: 0 8px 24px rgba(245,158,11,0.3) !important; }
-#MainMenu { visibility: hidden; }
-footer { visibility: hidden; }
-</style>
-""", unsafe_allow_html=True)
+inject_adminhmd_theme()
 
 # ============================================================
 # GUARD
@@ -127,23 +93,24 @@ def validasi_sumber(batch_ids: list, tingkat_tujuan: int) -> dict:
             results[bid] = {'exists': False, 'valid': False, 'reason': f"Error: {e}"}
     return results
 
-# ============================================================
-# HEADER
-# ============================================================
+# Top Navbar Header
 st.markdown("""
-<div class="page-header">
-    <div style="font-size: 2rem; margin-bottom: 8px;">📦</div>
-    <div style="font-family: 'Space Grotesk', sans-serif; font-size: 1.8rem; font-weight: 700; color: #FCD34D;">
-        F4 — Agregasi Batch Pengepul (Multi-Level)
+<div class="admin-topbar">
+    <div class="admin-topbar-title">
+        <span style="font-size: 1.5rem;">📦</span> F4 — Agregasi Batch Pengepul (Level 0 - 4)
     </div>
-    <div style="color: #FDE68A; font-size: 0.95rem; margin-top: 8px;">
-        Menggabungkan beberapa Batch Panen/Agregasi menjadi satu Batch Pengepul baru (Level 0 s.d 4). 
-        Sistem memvalidasi rute alur rantai pasok secara realtime.
+    <div class="admin-topbar-meta">
+        <span class="admin-badge badge-pengepul">Aktor: Pengepul</span>
+        <span class="admin-badge badge-connected">Traceability.createCollectorBatch()</span>
     </div>
-    <div style="margin-top: 12px; font-size: 0.75rem; color: #FCD34D;">
-        📋 Smart Contract: <code style="background: rgba(245,158,11,0.1); padding: 2px 8px; border-radius: 4px;">Traceability.createCollectorBatch()</code>
-        &nbsp;|&nbsp; 👤 Aktor: <strong>Pengepul</strong>
-    </div>
+</div>
+""", unsafe_allow_html=True)
+
+# Page Header
+st.markdown("""
+<div class="admin-page-header">
+    <h1>Agregasi Batch Pengepul Berjenjang</h1>
+    <p>Penggabungan beberapa batch panen atau agregasi sebelumnya menjadi batch pengepul baru dengan validasi rute otomatis.</p>
 </div>
 """, unsafe_allow_html=True)
 

@@ -18,6 +18,10 @@ from config import build_transaction
 # Nonaktifkan warning SSL Certificate karena server pemerintah sering unverified
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
+# Path setup
+sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
+from style_adminhmd import inject_adminhmd_theme
+
 # ============================================================
 # KONFIGURASI HALAMAN
 # ============================================================
@@ -27,51 +31,7 @@ st.set_page_config(
     layout="wide"
 )
 
-st.markdown("""
-<style>
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap');
-.stApp { background: linear-gradient(135deg, #0A0F1A 0%, #060912 100%) !important; color: #F0F4FF !important; }
-[data-testid="stSidebar"] { background: #060912 !important; border-right: 1px solid rgba(56,189,248,0.2) !important; }
-.page-header {
-    background: linear-gradient(135deg, rgba(2,132,199,0.2) 0%, rgba(56,189,248,0.08) 100%);
-    border: 1px solid rgba(56,189,248,0.2); border-radius: 20px; padding: 32px; margin-bottom: 24px;
-    border-left: 4px solid #0284C7;
-}
-.form-card {
-    background: rgba(2,132,199,0.05); border: 1px solid rgba(56,189,248,0.15);
-    border-radius: 16px; padding: 28px; margin: 12px 0;
-}
-.geo-success {
-    background: linear-gradient(135deg, rgba(34,197,94,0.1), rgba(34,197,94,0.05));
-    border: 1px solid rgba(34,197,94,0.3); border-radius: 12px; padding: 16px;
-}
-.geo-danger {
-    background: linear-gradient(135deg, rgba(239,68,68,0.15), rgba(239,68,68,0.05));
-    border: 1px solid rgba(239,68,68,0.4); border-radius: 12px; padding: 16px;
-    animation: pulse-danger 2s ease-in-out infinite;
-}
-@keyframes pulse-danger {
-    0%, 100% { box-shadow: 0 0 0 0 rgba(239,68,68,0); }
-    50% { box-shadow: 0 0 20px 4px rgba(239,68,68,0.15); }
-}
-.tx-success {
-    background: linear-gradient(135deg, rgba(2,132,199,0.15), rgba(56,189,248,0.08));
-    border: 1px solid rgba(56,189,248,0.4); border-radius: 12px; padding: 20px;
-}
-.stTextInput > div > div > input, .stNumberInput > div > div > input {
-    background: rgba(2,132,199,0.05) !important; border: 1px solid rgba(56,189,248,0.2) !important;
-    border-radius: 10px !important; color: #F0F4FF !important;
-}
-.stButton > button {
-    background: linear-gradient(135deg, #0284C7, #0EA5E9) !important; color: white !important;
-    border: none !important; border-radius: 10px !important; font-weight: 600 !important;
-    padding: 0.6rem 2rem !important; transition: all 0.3s !important;
-}
-.stButton > button:hover { transform: translateY(-2px) !important; box-shadow: 0 8px 24px rgba(56,189,248,0.3) !important; }
-#MainMenu { visibility: hidden; }
-footer { visibility: hidden; }
-</style>
-""", unsafe_allow_html=True)
+inject_adminhmd_theme()
 
 # ============================================================
 # GUARD
@@ -207,20 +167,24 @@ def cek_status_lahan_lokal(lat, lon):
 
 # ============================================================
 # HEADER HALAMAN
-# ============================================================
+# Top Navbar Header
 st.markdown("""
-<div class="page-header">
-    <div style="font-size: 2rem; margin-bottom: 8px;">🗺️</div>
-    <div style="font-family: 'Space Grotesk', sans-serif; font-size: 1.8rem; font-weight: 700; color: #38BDF8;">
-        F2 — Registrasi Lahan (Integrasi API KLHK)
+<div class="admin-topbar">
+    <div class="admin-topbar-title">
+        <span style="font-size: 1.5rem;">🗺️</span> F2 — Registrasi Lahan (Validasi Geospasial KLHK)
     </div>
-    <div style="color: #7DD3FC; font-size: 0.95rem; margin-top: 8px;">
-        Validasi koordinat lahan secara realtime menggunakan ArcGIS REST API Geoportal KLHK sebelum dicatat di blockchain.
+    <div class="admin-topbar-meta">
+        <span class="admin-badge badge-petani">Aktor: Petani</span>
+        <span class="admin-badge badge-connected">MasterData.registerLand()</span>
     </div>
-    <div style="margin-top: 12px; font-size: 0.75rem; color: #38BDF8;">
-        📋 Smart Contract: <code style="background: rgba(56,189,248,0.1); padding: 2px 8px; border-radius: 4px;">MasterData.registerLand()</code>
-        &nbsp;|&nbsp; 👤 Aktor: <strong>Petani</strong>
-    </div>
+</div>
+""", unsafe_allow_html=True)
+
+# Page Header
+st.markdown("""
+<div class="admin-page-header">
+    <h1>Registrasi Aset Lahan & Validasi Geospasial</h1>
+    <p>Validasi koordinat lahan secara realtime menggunakan ArcGIS REST API Geoportal KLHK sebelum dicatat permanen di blockchain.</p>
 </div>
 """, unsafe_allow_html=True)
 
