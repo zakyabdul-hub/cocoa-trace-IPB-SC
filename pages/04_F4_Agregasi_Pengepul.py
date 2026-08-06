@@ -384,15 +384,15 @@ with col_form:
                     
                     if result['success']:
                         st.markdown(f"""
-                        <div class="tx-success">
-                            <div style="font-size: 1.2rem; color: #FCD34D; margin-bottom: 12px;">✅ Batch Pengepul Berhasil Dibuat!</div>
-                            <table style="font-size: 0.8rem; color: #FDE68A; width: 100%;">
-                                <tr><td style="color: #FCD34D; padding: 3px 0;">📦 ID Batch Pengepul</td><td><strong>{id_batch_baru}</strong></td></tr>
-                                <tr><td style="color: #FCD34D; padding: 3px 0;">🌾 Jumlah Batch Sumber</td><td><strong>{len(batch_list)} Batch</strong></td></tr>
-                                <tr><td style="color: #FCD34D; padding: 3px 0;">⚖️ Total Kuantitas</td><td><strong>{total_qty:,} Kg</strong></td></tr>
-                                <tr><td style="color: #FCD34D; padding: 3px 0;">📊 Tingkat Proses</td><td>{current_tingkat}</td></tr>
-                                <tr><td style="color: #FCD34D; padding: 3px 0;">🔗 TX Hash</td>
-                                    <td style="font-family: monospace; font-size: 0.7rem;">{result['tx_hash'][:24]}...{result['tx_hash'][-8:]}</td>
+                        <div class="tx-success" style="background:#fffbeb;border:1px solid #fef3c7;border-radius:12px;padding:18px;">
+                            <div style="font-size: 1.25rem; font-weight: 700; color: #b45309; margin-bottom: 14px;">✅ Batch Pengepul Berhasil Dibuat!</div>
+                            <table style="font-size: 0.88rem; color: #1e293b; width: 100%; border-collapse: collapse;">
+                                <tr style="border-bottom: 1px solid #fef3c7;"><td style="color: #92400e; font-weight: 600; padding: 6px 0; width: 35%;">📦 ID Batch Pengepul</td><td style="color: #0f172a; padding: 6px 0;"><strong>{id_batch_baru}</strong></td></tr>
+                                <tr style="border-bottom: 1px solid #fef3c7;"><td style="color: #92400e; font-weight: 600; padding: 6px 0;">🌾 Jumlah Batch Sumber</td><td style="color: #0f172a; padding: 6px 0;"><strong>{len(batch_list)} Batch</strong></td></tr>
+                                <tr style="border-bottom: 1px solid #fef3c7;"><td style="color: #92400e; font-weight: 600; padding: 6px 0;">⚖️ Total Kuantitas</td><td style="color: #0f172a; padding: 6px 0;"><strong>{total_qty:,} Kg</strong></td></tr>
+                                <tr style="border-bottom: 1px solid #fef3c7;"><td style="color: #92400e; font-weight: 600; padding: 6px 0;">📊 Tingkat Proses</td><td style="color: #0f172a; padding: 6px 0;"><strong>{current_tingkat}</strong></td></tr>
+                                <tr><td style="color: #92400e; font-weight: 600; padding: 6px 0;">🔗 TX Hash</td>
+                                    <td style="font-family: monospace; font-size: 0.75rem; color: #334155; word-break: break-all; padding: 6px 0;">{result['tx_hash']}</td>
                                 </tr>
                             </table>
                         </div>

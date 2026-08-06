@@ -142,7 +142,19 @@ with col_form:
                     )
                     
                     if result['success']:
-                        st.success(f"✅ Varietas {id_varietas} berhasil didaftarkan ke blockchain!")
+                        st.markdown(f"""
+                        <div class="tx-success" style="background:#ccfbf1;border:1px solid #99f6e4;border-radius:12px;padding:18px;">
+                            <div style="font-size: 1.25rem; font-weight: 700; color: #0f766e; margin-bottom: 14px;">✅ Varietas Berhasil Didaftarkan!</div>
+                            <table style="font-size: 0.88rem; color: #1e293b; width: 100%; border-collapse: collapse;">
+                                <tr style="border-bottom: 1px solid #99f6e4;"><td style="color: #0f766e; font-weight: 600; padding: 6px 0; width: 35%;">🌱 ID Varietas</td><td style="color: #0f172a; padding: 6px 0;"><strong>{id_varietas}</strong></td></tr>
+                                <tr style="border-bottom: 1px solid #99f6e4;"><td style="color: #0f766e; font-weight: 600; padding: 6px 0;">📄 SK Pelepasan</td><td style="color: #0f172a; padding: 6px 0;">{sk_pelepasan.strip()}</td></tr>
+                                <tr style="border-bottom: 1px solid #99f6e4;"><td style="color: #0f766e; font-weight: 600; padding: 6px 0;">📅 Masa Edar</td><td style="color: #0f172a; padding: 6px 0;"><strong>{masa_edar} Tahun</strong></td></tr>
+                                <tr><td style="color: #0f766e; font-weight: 600; padding: 6px 0;">🔗 TX Hash</td>
+                                    <td style="font-family: monospace; font-size: 0.75rem; color: #334155; word-break: break-all; padding: 6px 0;">{result['tx_hash']}</td>
+                                </tr>
+                            </table>
+                        </div>
+                        """, unsafe_allow_html=True)
                         st.balloons()
                     else:
                         st.error(f"❌ Transaksi Gagal: {result['error']}")

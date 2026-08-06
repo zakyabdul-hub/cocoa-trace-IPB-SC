@@ -265,28 +265,29 @@ with col_form:
         val_done = True
         if klhk_result['status'] == 'VALID':
             st.markdown(f"""
-            <div class="geo-success" style="margin-top:12px;">
-                <div style="color:#4ADE80;font-weight:600;font-size:1.1rem;">✅ Validasi Lolos</div>
-                <div style="color:#86EFAC;font-size:0.9rem;margin-top:4px;">{klhk_result['message']}</div>
+            <div class="geo-success" style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:12px;padding:16px;margin-top:12px;">
+                <div style="color:#15803d;font-weight:700;font-size:1.1rem;">✅ Validasi Lolos</div>
+                <div style="color:#166534;font-size:0.9rem;margin-top:4px;">{klhk_result['message']}</div>
             </div>
             """, unsafe_allow_html=True)
         elif klhk_result['status'] == 'INVALID':
             st.markdown(f"""
-            <div class="geo-danger" style="margin-top:12px;">
-                <div style="color:#FCA5A5;font-weight:700;font-size:1.1rem;">🚫 Validasi Gagal</div>
-                <div style="color:#FCA5A5;font-size:0.9rem;margin-top:4px;">{klhk_result['message']}</div>
-                <div style="color:#F87171;font-size:0.8rem;margin-top:8px;">Kawasan: {klhk_result.get('nama_kws','-')}</div>
+            <div class="geo-danger" style="background:#fef2f2;border:1px solid #fecdd3;border-radius:12px;padding:16px;margin-top:12px;">
+                <div style="color:#b91c1c;font-weight:700;font-size:1.1rem;">🚫 Validasi Gagal</div>
+                <div style="color:#991b1b;font-size:0.9rem;margin-top:4px;">{klhk_result['message']}</div>
+                <div style="color:#7f1d1d;font-size:0.85rem;margin-top:8px;font-weight:600;">Kawasan: {klhk_result.get('nama_kws','-')}</div>
             </div>
             """, unsafe_allow_html=True)
         else:
             st.markdown(f"""
-            <div style="background:rgba(245,158,11,0.1);border:1px solid rgba(245,158,11,0.4);border-radius:12px;padding:16px;margin-top:12px;">
-                <div style="color:#FCD34D;font-weight:600;">⚠️ Terjadi Kesalahan</div>
-                <div style="color:#FCD34D;font-size:0.9rem;">{klhk_result['message']}</div>
+            <div style="background:#fffbeb;border:1px solid #fde68a;border-radius:12px;padding:16px;margin-top:12px;">
+                <div style="color:#b45309;font-weight:700;">⚠️ Terjadi Kesalahan</div>
+                <div style="color:#92400e;font-size:0.9rem;">{klhk_result['message']}</div>
             </div>
             """, unsafe_allow_html=True)
     else:
         val_done = False
+
 
     # 2. FORM INPUT DATA LAHAN & BLOCKCHAIN (STEP 2)
     step2_header_color = "#38BDF8" if val_done and klhk_result['status'] == 'VALID' else "#475569"
@@ -397,14 +398,14 @@ with col_form:
                     
                     if result_tx['success']:
                         st.markdown(f"""
-                        <div class="tx-success">
-                            <div style="font-size:1.2rem;color:#38BDF8;margin-bottom:12px;">✅ Lahan Berhasil Didaftarkan!</div>
-                            <table style="font-size:0.8rem;color:#BAE6FD;width:100%;">
-                                <tr><td style="color:#7DD3FC;padding:3px 0;">🏷️ ID Lahan</td><td><strong>{id_lahan}</strong></td></tr>
-                                <tr><td style="color:#7DD3FC;padding:3px 0;">📄 No. STDB</td><td>{no_stdb.upper()}</td></tr>
-                                <tr><td style="color:#7DD3FC;padding:3px 0;">📍 Koordinat</td><td>{koordinat_str}</td></tr>
-                                <tr><td style="color:#7DD3FC;padding:3px 0;">🔗 TX Hash</td>
-                                    <td style="font-family:monospace;font-size:0.7rem;">{result_tx['tx_hash']}</td>
+                        <div class="tx-success" style="background:#f0f9ff;border:1px solid #bae6fd;border-radius:12px;padding:18px;">
+                            <div style="font-size:1.25rem;font-weight:700;color:#0369a1;margin-bottom:14px;">✅ Lahan Berhasil Didaftarkan!</div>
+                            <table style="font-size:0.88rem;color:#1e293b;width:100%;border-collapse:collapse;">
+                                <tr style="border-bottom:1px solid #e0f2fe;"><td style="color:#0284c7;font-weight:600;padding:6px 0;width:35%;">🏷️ ID Lahan</td><td style="color:#0f172a;padding:6px 0;"><strong>{id_lahan}</strong></td></tr>
+                                <tr style="border-bottom:1px solid #e0f2fe;"><td style="color:#0284c7;font-weight:600;padding:6px 0;">📄 No. STDB</td><td style="color:#0f172a;padding:6px 0;">{no_stdb.upper()}</td></tr>
+                                <tr style="border-bottom:1px solid #e0f2fe;"><td style="color:#0284c7;font-weight:600;padding:6px 0;">📍 Koordinat</td><td style="color:#0f172a;padding:6px 0;">{koordinat_str}</td></tr>
+                                <tr><td style="color:#0284c7;font-weight:600;padding:6px 0;">🔗 TX Hash</td>
+                                    <td style="font-family:monospace;font-size:0.75rem;color:#334155;word-break:break-all;padding:6px 0;">{result_tx['tx_hash']}</td>
                                 </tr>
                             </table>
                         </div>

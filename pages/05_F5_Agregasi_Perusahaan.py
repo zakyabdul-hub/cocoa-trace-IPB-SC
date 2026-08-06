@@ -372,15 +372,15 @@ with col_form:
                         
                         if result['success']:
                             st.markdown(f"""
-                            <div class="tx-success">
-                                <div style="font-size: 1.2rem; color: #FCA5A5; margin-bottom: 12px;">✅ Batch Perusahaan Berhasil Dibuat!</div>
-                                <table style="font-size: 0.8rem; color: #FECACA; width: 100%;">
-                                    <tr><td style="color: #FCA5A5; padding: 3px 0;">🏭 ID Batch</td><td><strong>{id_batch_baru}</strong></td></tr>
-                                    <tr><td style="color: #FCA5A5; padding: 3px 0;">🏗️ Tingkat</td><td><strong>{TINGKAT_PROSES_MAP.get(selected_tingkat,'?')}</strong></td></tr>
-                                    <tr><td style="color: #FCA5A5; padding: 3px 0;">📥 Batch Sumber</td><td>{len(batch_list)} Batch</td></tr>
-                                    <tr><td style="color: #FCA5A5; padding: 3px 0;">⚖️ Total Qty</td><td><strong>{total_qty:,} Kg</strong></td></tr>
-                                    <tr><td style="color: #FCA5A5; padding: 3px 0;">🔗 TX Hash</td>
-                                        <td style="font-family: monospace; font-size: 0.7rem;">{result['tx_hash'][:24]}...{result['tx_hash'][-8:]}</td>
+                            <div class="tx-success" style="background:#fff1f2;border:1px solid #fecdd3;border-radius:12px;padding:18px;">
+                                <div style="font-size: 1.25rem; font-weight: 700; color: #be123c; margin-bottom: 14px;">✅ Batch Perusahaan Berhasil Dibuat!</div>
+                                <table style="font-size: 0.88rem; color: #1e293b; width: 100%; border-collapse: collapse;">
+                                    <tr style="border-bottom: 1px solid #fecdd3;"><td style="color: #9f1239; font-weight: 600; padding: 6px 0; width: 35%;">🏭 ID Batch</td><td style="color: #0f172a; padding: 6px 0;"><strong>{id_batch_baru}</strong></td></tr>
+                                    <tr style="border-bottom: 1px solid #fecdd3;"><td style="color: #9f1239; font-weight: 600; padding: 6px 0;">🏗️ Tingkat</td><td style="color: #0f172a; padding: 6px 0;"><strong>{TINGKAT_PROSES_MAP.get(selected_tingkat,'?')}</strong></td></tr>
+                                    <tr style="border-bottom: 1px solid #fecdd3;"><td style="color: #9f1239; font-weight: 600; padding: 6px 0;">📥 Batch Sumber</td><td style="color: #0f172a; padding: 6px 0;"><strong>{len(batch_list)} Batch</strong></td></tr>
+                                    <tr style="border-bottom: 1px solid #fecdd3;"><td style="color: #9f1239; font-weight: 600; padding: 6px 0;">⚖️ Total Qty</td><td style="color: #0f172a; padding: 6px 0;"><strong>{total_qty:,} Kg</strong></td></tr>
+                                    <tr><td style="color: #9f1239; font-weight: 600; padding: 6px 0;">🔗 TX Hash</td>
+                                        <td style="font-family: monospace; font-size: 0.75rem; color: #334155; word-break: break-all; padding: 6px 0;">{result['tx_hash']}</td>
                                     </tr>
                                 </table>
                             </div>

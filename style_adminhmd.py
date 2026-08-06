@@ -378,9 +378,69 @@ def inject_adminhmd_theme():
             font-weight: 600 !important;
         }
         
-        .stTabs [aria-selected="true"] {
-            background-color: var(--admin-primary) !important;
-            color: #ffffff !important;
+        /* ============================================================
+           HIGH CONTRAST NOTIFICATION & CARD OVERRIDES
+           ============================================================ */
+        .tx-success {
+            background-color: #f0fdf4 !important;
+            border: 1px solid #bbf7d0 !important;
+            border-radius: 12px !important;
+            padding: 18px !important;
+            margin: 14px 0 !important;
+            box-shadow: 0 4px 14px rgba(15, 23, 42, 0.05) !important;
+            color: #0f172a !important;
+        }
+        
+        .tx-success div, .tx-success h3, .tx-success h4 {
+            color: #15803d !important;
+            font-weight: 700 !important;
+        }
+
+        .tx-success table {
+            color: #1e293b !important;
+        }
+
+        .tx-success table td {
+            color: #166534 !important;
+            font-weight: 600 !important;
+        }
+
+        .tx-success table td strong {
+            color: #0f172a !important;
+            font-weight: 700 !important;
+        }
+
+        .form-card, .result-card {
+            background: var(--admin-surface) !important;
+            border: 1px solid var(--admin-border) !important;
+            border-radius: 14px !important;
+            padding: 24px !important;
+            margin-bottom: 20px !important;
+            box-shadow: var(--admin-shadow-sm) !important;
+            color: var(--admin-text) !important;
+        }
+
+        .ferment-badge-yes {
+            background-color: #dcfce7 !important;
+            color: #15803d !important;
+            border: 1px solid #bbf7d0 !important;
+            padding: 6px 12px !important;
+            border-radius: 8px !important;
+            font-weight: 600 !important;
+            font-size: 0.85rem !important;
+            display: inline-block !important;
+        }
+
+        .ferment-badge-no {
+            background-color: #fef3c7 !important;
+            color: #92400e !important;
+            border: 1px solid #fde68a !important;
+            padding: 6px 12px !important;
+            border-radius: 8px !important;
+            font-weight: 600 !important;
+            font-size: 0.85rem !important;
+            display: inline-block !important;
         }
     </style>
     """, unsafe_allow_html=True)
+

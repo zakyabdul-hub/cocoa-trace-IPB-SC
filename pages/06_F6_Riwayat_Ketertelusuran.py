@@ -232,15 +232,15 @@ def render_trace_node(node: dict, indent: int = 0) -> str:
             <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
                 <span style="font-size: 1.3rem;">{icon}</span>
                 <span class="trace-badge {badge_css}">{tingkat_name}</span>
-                <span style="font-family: 'Space Grotesk', sans-serif; font-weight: 600; color: {color}; font-size: 0.95rem;">
+                <span style="font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 700; color: {color}; font-size: 0.95rem;">
                     {node['id']}
                 </span>
             </div>
-            <div style="font-size: 0.78rem; color: #C4B5FD; display: grid; grid-template-columns: 1fr 1fr; gap: 4px;">
-                <span>⚖️ Qty: <strong>{node.get('qty', 0):,} Kg</strong></span>
-                <span>🕐 {ts_str}</span>
-                <span>📊 {agg_status}</span>
-                <span>📋 Mutu: {str(node.get('mutu',''))[:30]}...</span>
+            <div style="font-size: 0.82rem; color: #334155; display: grid; grid-template-columns: 1fr 1fr; gap: 4px;">
+                <span>⚖️ Qty: <strong style="color:#0f172a;">{node.get('qty', 0):,} Kg</strong></span>
+                <span>🕐 <span style="color:#0f172a;">{ts_str}</span></span>
+                <span>📊 <span style="color:#0f172a;">{agg_status}</span></span>
+                <span>📋 Mutu: <span style="color:#0f172a;">{str(node.get('mutu',''))[:30]}...</span></span>
             </div>
         </div>"""
     
@@ -254,16 +254,16 @@ def render_trace_node(node: dict, indent: int = 0) -> str:
             <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
                 <span style="font-size: 1.3rem;">🌾</span>
                 <span class="trace-badge badge-panen">Batch Panen</span>
-                <span style="font-family: 'Space Grotesk', sans-serif; font-weight: 600; color: #4ADE80; font-size: 0.95rem;">
+                <span style="font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 700; color: #15803d; font-size: 0.95rem;">
                     {node['id']}
                 </span>
             </div>
-            <div style="font-size: 0.78rem; color: #BBF7D0; display: grid; grid-template-columns: 1fr 1fr; gap: 4px;">
-                <span>⚖️ Qty: <strong>{node.get('qty', 0):,} Kg</strong></span>
-                <span>🕐 {ts_str}</span>
-                <span>🧪 {ferm_str}</span>
-                <span>📊 {agg_status}</span>
-                <span>🗺️ Lahan: {node.get('id_lahan','')}</span>
+            <div style="font-size: 0.82rem; color: #334155; display: grid; grid-template-columns: 1fr 1fr; gap: 4px;">
+                <span>⚖️ Qty: <strong style="color:#0f172a;">{node.get('qty', 0):,} Kg</strong></span>
+                <span>🕐 <span style="color:#0f172a;">{ts_str}</span></span>
+                <span>🧪 <span style="color:#0f172a;">{ferm_str}</span></span>
+                <span>📊 <span style="color:#0f172a;">{agg_status}</span></span>
+                <span>🗺️ Lahan: <span style="color:#0f172a;">{node.get('id_lahan','')}</span></span>
             </div>
         </div>"""
     
@@ -277,16 +277,16 @@ def render_trace_node(node: dict, indent: int = 0) -> str:
             <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
                 <span style="font-size: 1.3rem;">🗺️</span>
                 <span class="trace-badge badge-lahan">Lahan</span>
-                <span style="font-family: 'Space Grotesk', sans-serif; font-weight: 600; color: #38BDF8; font-size: 0.95rem;">
+                <span style="font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 700; color: #0284c7; font-size: 0.95rem;">
                     {node['id']}
                 </span>
             </div>
-            <div style="font-size: 0.78rem; color: #BAE6FD; display: grid; grid-template-columns: 1fr 1fr; gap: 4px;">
-                <span>📄 STDB: {node.get('no_stdb','')}</span>
-                <span>🕐 {ts_str}</span>
-                <span>📐 Luas: {node.get('luas',0):,} m²</span>
+            <div style="font-size: 0.82rem; color: #334155; display: grid; grid-template-columns: 1fr 1fr; gap: 4px;">
+                <span>📄 STDB: <span style="color:#0f172a;">{node.get('no_stdb','')}</span></span>
+                <span>🕐 <span style="color:#0f172a;">{ts_str}</span></span>
+                <span>📐 Luas: <span style="color:#0f172a;">{node.get('luas',0):,} m²</span></span>
                 <span>{bebas_html}</span>
-                <span>📍 {node.get('koordinat','')}</span>
+                <span>📍 <span style="color:#0f172a;">{node.get('koordinat','')}</span></span>
             </div>
         </div>"""
     
@@ -298,14 +298,14 @@ def render_trace_node(node: dict, indent: int = 0) -> str:
             <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
                 <span style="font-size: 1.3rem;">🌱</span>
                 <span class="trace-badge badge-varietas">Varietas Benih</span>
-                <span style="font-family: 'Space Grotesk', sans-serif; font-weight: 600; color: #34D399; font-size: 0.95rem;">
+                <span style="font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 700; color: #0f766e; font-size: 0.95rem;">
                     {node['id']}
                 </span>
             </div>
-            <div style="font-size: 0.78rem; color: #A7F3D0; display: grid; grid-template-columns: 1fr 1fr; gap: 4px;">
-                <span>📄 SK: {node.get('sk_pelepasan','')}</span>
-                <span>🕐 {ts_str}</span>
-                <span>📅 Masa Edar: {node.get('masa_edar',0)} Tahun</span>
+            <div style="font-size: 0.82rem; color: #334155; display: grid; grid-template-columns: 1fr 1fr; gap: 4px;">
+                <span>📄 SK: <span style="color:#0f172a;">{node.get('sk_pelepasan','')}</span></span>
+                <span>🕐 <span style="color:#0f172a;">{ts_str}</span></span>
+                <span>📅 Masa Edar: <span style="color:#0f172a;">{node.get('masa_edar',0)} Tahun</span></span>
             </div>
         </div>"""
     

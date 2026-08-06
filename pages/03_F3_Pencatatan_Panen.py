@@ -73,8 +73,8 @@ col_form, col_info = st.columns([3, 2], gap="large")
 with col_form:
     st.markdown('<div class="form-card">', unsafe_allow_html=True)
     st.markdown("""
-    <div style="font-family: 'Space Grotesk', sans-serif; font-size: 1.1rem; font-weight: 600; 
-         color: #4ADE80; margin-bottom: 20px;">📝 Form Pencatatan Batch Panen</div>
+    <div style="font-family: 'Plus Jakarta Sans', sans-serif; font-size: 1.1rem; font-weight: 700; 
+         color: #15803d; margin-bottom: 20px;">📝 Form Pencatatan Batch Panen</div>
     """, unsafe_allow_html=True)
     
     # Tampilkan daftar lahan milik petani ini
@@ -171,7 +171,7 @@ with col_form:
 
     st.markdown("---")
     st.markdown(f"""
-    <div style="font-size: 0.8rem; color: #86EFAC; margin-bottom: 8px;">
+    <div style="font-size: 0.82rem; color: #374151; margin-bottom: 8px;">
         🔑 Transaksi dari: <code>{st.session_state.get('wallet_address', 'N/A')[:20]}...</code>
     </div>
     """, unsafe_allow_html=True)
@@ -216,15 +216,15 @@ with col_form:
                     if result['success']:
                         ferment_str = "✅ Sudah Difermentasi" if is_fermented else "⏳ Belum Difermentasi"
                         st.markdown(f"""
-                        <div class="tx-success">
-                            <div style="font-size: 1.2rem; color: #4ADE80; margin-bottom: 12px;">✅ Batch Panen Berhasil Dicatat!</div>
-                            <table style="font-size: 0.8rem; color: #BBF7D0; width: 100%;">
-                                <tr><td style="color: #86EFAC; padding: 3px 0;">🏷️ ID Batch</td><td><strong>{id_batch}</strong></td></tr>
-                                <tr><td style="color: #86EFAC; padding: 3px 0;">🗺️ ID Lahan</td><td>{id_lahan_ref}</td></tr>
-                                <tr><td style="color: #86EFAC; padding: 3px 0;">⚖️ Kuantitas</td><td><strong>{qty_panen:,} Kg</strong></td></tr>
-                                <tr><td style="color: #86EFAC; padding: 3px 0;">🧪 Fermentasi</td><td>{ferment_str}</td></tr>
-                                <tr><td style="color: #86EFAC; padding: 3px 0;">🔗 TX Hash</td>
-                                    <td style="font-family: monospace; font-size: 0.7rem;">{result['tx_hash']}</td>
+                        <div class="tx-success" style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 12px; padding: 18px;">
+                            <div style="font-size: 1.25rem; font-weight: 700; color: #15803d; margin-bottom: 14px;">✅ Batch Panen Berhasil Dicatat!</div>
+                            <table style="font-size: 0.88rem; color: #1e293b; width: 100%; border-collapse: collapse;">
+                                <tr style="border-bottom: 1px solid #dcfce7;"><td style="color: #166534; font-weight: 600; padding: 6px 0; width: 35%;">🏷️ ID Batch</td><td style="color: #0f172a; padding: 6px 0;"><strong>{id_batch}</strong></td></tr>
+                                <tr style="border-bottom: 1px solid #dcfce7;"><td style="color: #166534; font-weight: 600; padding: 6px 0;">🗺️ ID Lahan</td><td style="color: #0f172a; padding: 6px 0;">{id_lahan_ref}</td></tr>
+                                <tr style="border-bottom: 1px solid #dcfce7;"><td style="color: #166534; font-weight: 600; padding: 6px 0;">⚖️ Kuantitas</td><td style="color: #0f172a; padding: 6px 0;"><strong>{qty_panen:,} Kg</strong></td></tr>
+                                <tr style="border-bottom: 1px solid #dcfce7;"><td style="color: #166534; font-weight: 600; padding: 6px 0;">🧪 Fermentasi</td><td style="color: #0f172a; padding: 6px 0;">{ferment_str}</td></tr>
+                                <tr><td style="color: #166534; font-weight: 600; padding: 6px 0;">🔗 TX Hash</td>
+                                    <td style="font-family: monospace; font-size: 0.75rem; color: #334155; word-break: break-all; padding: 6px 0;">{result['tx_hash']}</td>
                                 </tr>
                             </table>
                         </div>
@@ -241,8 +241,8 @@ with col_info:
     # Panel Cek Data Panen
     st.markdown('<div class="form-card">', unsafe_allow_html=True)
     st.markdown("""
-    <div style="font-family: 'Space Grotesk', sans-serif; font-size: 1rem; font-weight: 600; 
-         color: #4ADE80; margin-bottom: 16px;">🔍 Cek Data Batch Panen</div>
+    <div style="font-family: 'Plus Jakarta Sans', sans-serif; font-size: 1rem; font-weight: 700; 
+         color: #15803d; margin-bottom: 16px;">🔍 Cek Data Batch Panen</div>
     """, unsafe_allow_html=True)
     
     check_batch_id = st.text_input("ID Batch Panen", placeholder="BTC-PETANI-001", key="check_panen")
@@ -261,18 +261,18 @@ with col_info:
                     ferm_str = "✅ Ya" if is_ferm else "❌ Belum"
                     agg_str = "🔒 Sudah Diagregasi" if is_agg else "🟢 Tersedia"
                     st.markdown(f"""
-                    <div class="result-card">
-                        <div style="color: #4ADE80; font-weight: 600; margin-bottom: 10px;">✅ Batch Ditemukan</div>
-                        <div style="font-size: 0.78rem; color: #BBF7D0; line-height: 1.8;">
-                            <div>🏷️ ID Batch: <strong>{id_b}</strong></div>
-                            <div>🗺️ ID Lahan: {id_l}</div>
-                            <div>⚖️ Kuantitas: <strong>{qty:,} Kg</strong></div>
-                            <div>🧪 Fermentasi: {ferm_str}</div>
-                            <div>📊 Status: {agg_str}</div>
-                            <div style="font-family: monospace; font-size: 0.7rem; word-break: break-all;">
+                    <div class="result-card" style="background: #f0fdf4; border: 1px solid #bbf7d0;">
+                        <div style="color: #15803d; font-weight: 700; font-size: 1.05rem; margin-bottom: 10px;">✅ Batch Ditemukan</div>
+                        <div style="font-size: 0.85rem; color: #1e293b; line-height: 1.8;">
+                            <div>🏷️ ID Batch: <strong style="color: #0f172a;">{id_b}</strong></div>
+                            <div>🗺️ ID Lahan: <span style="color: #0f172a;">{id_l}</span></div>
+                            <div>⚖️ Kuantitas: <strong style="color: #0f172a;">{qty:,} Kg</strong></div>
+                            <div>🧪 Fermentasi: <span style="color: #0f172a;">{ferm_str}</span></div>
+                            <div>📊 Status: <span style="color: #0f172a;">{agg_str}</span></div>
+                            <div style="font-family: monospace; font-size: 0.75rem; color: #334155; word-break: break-all;">
                                 👤 Petani: {petani}
                             </div>
-                            <div>🕐 Waktu: {reg_time}</div>
+                            <div>🕐 Waktu: <span style="color: #0f172a;">{reg_time}</span></div>
                         </div>
                     </div>
                     """, unsafe_allow_html=True)
@@ -283,15 +283,15 @@ with col_info:
     
     # Informasi Alur
     st.markdown("""
-    <div style="background: rgba(5,150,105,0.05); border: 1px solid rgba(74,222,128,0.1); 
-         border-radius: 12px; padding: 16px; margin-top: 12px; font-size: 0.8rem; color: #86EFAC;">
-        <div style="font-weight: 600; color: #4ADE80; margin-bottom: 10px;">ℹ️ Alur Rantai Pasok</div>
-        <div style="line-height: 2;">
+    <div style="background: #f0fdf4; border: 1px solid #bbf7d0; 
+         border-radius: 12px; padding: 16px; margin-top: 12px; font-size: 0.85rem; color: #166534;">
+        <div style="font-weight: 700; color: #15803d; margin-bottom: 10px;">ℹ️ Alur Rantai Pasok</div>
+        <div style="line-height: 2; color: #1e293b;">
             🌱 Varietas Benih (Penangkar)<br>
             &nbsp;&nbsp;-&gt;<br>
             🗺️ Registrasi Lahan (Petani) [F2]<br>
             &nbsp;&nbsp;-&gt;<br>
-            🌾 <strong style="color: #4ADE80;">Catat Panen (Petani) -- Anda di sini</strong><br>
+            🌾 <strong style="color: #15803d;">Catat Panen (Petani) -- Anda di sini</strong><br>
             &nbsp;&nbsp;-&gt;<br>
             📦 Agregasi Pengepul [F4]<br>
             &nbsp;&nbsp;-&gt;<br>
@@ -305,8 +305,8 @@ with col_info:
 # ============================================================
 st.markdown("---")
 st.markdown("""
-<div style="font-family: 'Space Grotesk', sans-serif; font-size: 1.2rem; font-weight: 700;
-     color: #4ADE80; margin-bottom: 16px;">
+<div style="font-family: 'Plus Jakarta Sans', sans-serif; font-size: 1.2rem; font-weight: 700;
+     color: #15803d; margin-bottom: 16px;">
     📋 Daftar Semua Batch Panen
 </div>
 """, unsafe_allow_html=True)
@@ -337,10 +337,10 @@ if refresh_panen or st.session_state.get('panen_list_loaded'):
 
             with col_cnt3:
                 st.markdown(f"""
-                <div style="background: rgba(5,150,105,0.08); border: 1px solid rgba(52,211,153,0.2);
-                     border-radius: 10px; padding: 10px 16px; font-size: 0.85rem; color: #86EFAC;">
-                    📊 Ditampilkan ({filter_label}): <strong style="color: #4ADE80;">{len(all_ids)}</strong>
-                    &nbsp;|&nbsp; Total: <strong>{total}</strong>
+                <div style="background: #f0fdf4; border: 1px solid #bbf7d0;
+                     border-radius: 10px; padding: 10px 16px; font-size: 0.85rem; color: #166534;">
+                    📊 Ditampilkan ({filter_label}): <strong style="color: #15803d;">{len(all_ids)}</strong>
+                    &nbsp;|&nbsp; Total: <strong style="color: #15803d;">{total}</strong>
                 </div>
                 """, unsafe_allow_html=True)
 
