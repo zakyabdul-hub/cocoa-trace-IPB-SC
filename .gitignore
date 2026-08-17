@@ -21,3 +21,13 @@ node_modules
 /cache
 /artifacts
 forest_zone/
+
+# Data simulasi (mengandung private key — jangan dipublikasikan)
+scenario2.json
+
+# Dokumen tesis, laporan, dan file tidak perlu
+tesis fix/
+UML Diagram/
+*.xlsx
+*.pptx
+convert_md_to_docx.py
