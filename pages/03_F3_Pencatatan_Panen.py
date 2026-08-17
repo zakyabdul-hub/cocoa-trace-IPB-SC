@@ -71,8 +71,8 @@ if not check_auth():
 col_form, col_info = st.columns([3, 2], gap="large")
 
 with col_form:
-    st.markdown('<div class="form-card">', unsafe_allow_html=True)
     st.markdown("""
+    <div class="form-card">
     <div style="font-family: 'Plus Jakarta Sans', sans-serif; font-size: 1.1rem; font-weight: 700; 
          color: #15803d; margin-bottom: 20px;">📝 Form Pencatatan Batch Panen</div>
     """, unsafe_allow_html=True)
@@ -239,8 +239,8 @@ with col_form:
 
 with col_info:
     # Panel Cek Data Panen
-    st.markdown('<div class="form-card">', unsafe_allow_html=True)
     st.markdown("""
+    <div class="form-card">
     <div style="font-family: 'Plus Jakarta Sans', sans-serif; font-size: 1rem; font-weight: 700; 
          color: #15803d; margin-bottom: 16px;">🔍 Cek Data Batch Panen</div>
     """, unsafe_allow_html=True)

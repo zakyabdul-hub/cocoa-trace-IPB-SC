@@ -194,6 +194,14 @@ if not check_auth():
 # ============================================================
 # LAYOUT UTAMA
 # ============================================================
+
+# Terapkan koordinat klik peta ke widget SEBELUM kolom dirender.
+# (number_input harus membaca nilai baru dari session_state pada saat pertama kali dirender)
+if st.session_state.get("_apply_map_coords"):
+    st.session_state.input_latitude  = st.session_state["_apply_map_coords"]["lat"]
+    st.session_state.input_longitude = st.session_state["_apply_map_coords"]["lon"]
+    del st.session_state["_apply_map_coords"]
+
 col_form, col_map = st.columns([3, 2], gap="large")
 
 with col_form:
@@ -226,16 +234,24 @@ with col_form:
                 st.error(f"Gagal memuat varietas: {e}")
 
     # 1. FORM INPUT KOORDINAT (STEP 1)
+    # Inisialisasi session state koordinat (diupdate oleh klik peta)
+    if 'input_latitude' not in st.session_state:
+        st.session_state.input_latitude = -5.5
+    if 'input_longitude' not in st.session_state:
+        st.session_state.input_longitude = 119.5
+
     col_lat, col_lon = st.columns(2)
     with col_lat:
         latitude = st.number_input(
             "🌐 Latitude *",
-            min_value=-90.0, max_value=90.0, value=-5.5, step=0.0001, format="%.6f"
+            min_value=-90.0, max_value=90.0, value=-5.5, step=0.0001, format="%.6f",
+            key="input_latitude"
         )
     with col_lon:
         longitude = st.number_input(
             "🌐 Longitude *",
-            min_value=-180.0, max_value=180.0, value=119.5, step=0.0001, format="%.6f"
+            min_value=-180.0, max_value=180.0, value=119.5, step=0.0001, format="%.6f",
+            key="input_longitude"
         )
 
     # Tombol Validasi
@@ -449,8 +465,34 @@ with col_map:
                 marker_color = "orange"
                 popup_html = f"<b>⚠️ Error KLHK</b><br>Lat: {map_lat}<br>Lon: {map_lon}"
 
-        # Bangun Peta
-        m = folium.Map(location=[map_lat, map_lon], zoom_start=12, tiles="CartoDB dark_matter")
+        # Bangun Peta Leaflet dengan 3 Opsi Layer
+        m = folium.Map(location=[map_lat, map_lon], zoom_start=13, tiles=None)
+
+        # Layer 1: Default (OpenStreetMap)
+        folium.TileLayer(
+            tiles="OpenStreetMap",
+            name="🗺️ Default",
+            control=True,
+        ).add_to(m)
+
+        # Layer 2: Satelit (Esri World Imagery)
+        folium.TileLayer(
+            tiles="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+            attr="Esri WorldImagery",
+            name="🛰️ Satelit",
+            control=True,
+        ).add_to(m)
+
+        # Layer 3: Terang (CartoDB Positron)
+        folium.TileLayer(
+            tiles="CartoDB positron",
+            name="☀️ Terang",
+            control=True,
+        ).add_to(m)
+
+        # Layer Control Switcher (Ikon Ringkas di Pojok Kanan Atas)
+        folium.LayerControl(position="topright", collapsed=True).add_to(m)
+
         folium.Marker(
             location=[map_lat, map_lon],
             popup=folium.Popup(popup_html, max_width=200),
@@ -464,8 +506,42 @@ with col_map:
             radius=500,
             color=circle_color, fill=True, fill_opacity=0.1, weight=1.5
         ).add_to(m)
-        
-        st_folium(m, width=None, height=320, returned_objects=[])
+
+        # Plugin: tampilkan koordinat saat pengguna klik peta
+        folium.LatLngPopup().add_to(m)
+
+        st.caption("🖖️ Klik titik pada peta, lalu tekan tombol di bawah untuk mengisi form koordinat.")
+
+        map_data = st_folium(m, width=None, height=340, returned_objects=["last_clicked"])
+
+        # Simpan koordinat klik ke "pending" — BELUM langsung update form
+        if map_data and map_data.get("last_clicked"):
+            st.session_state["pending_lat"] = round(map_data["last_clicked"]["lat"], 6)
+            st.session_state["pending_lon"] = round(map_data["last_clicked"]["lng"], 6)
+
+        # Tampilkan preview + tombol konfirmasi jika ada koordinat pending
+        pending_lat = st.session_state.get("pending_lat")
+        pending_lon = st.session_state.get("pending_lon")
+
+        if pending_lat is not None and pending_lon is not None:
+            st.markdown(f"""
+            <div style="background:#EFF6FF;border:1.5px solid #BFDBFE;
+                 border-radius:10px;padding:10px 14px;margin-top:10px;font-size:0.85rem;">
+                <div style="color:#1D4ED8;font-weight:700;margin-bottom:4px;">&#128205; Titik dipilih di peta:</div>
+                <div style="color:#1E3A5F;font-family:monospace;font-size:0.9rem;">
+                    Lat: <strong>{pending_lat:.6f}</strong> &nbsp;|&nbsp; Lon: <strong>{pending_lon:.6f}</strong>
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+
+            if st.button("📌 Input Koordinat ke Form", use_container_width=True, type="primary"):
+                # Simpan ke flag yang ditangkap di TOP-LEVEL sebelum kolom dirender
+                st.session_state["_apply_map_coords"] = {"lat": pending_lat, "lon": pending_lon}
+                if "pending_lat" in st.session_state:
+                    del st.session_state["pending_lat"]
+                if "pending_lon" in st.session_state:
+                    del st.session_state["pending_lon"]
+                st.rerun()
         
     except ImportError:
         st.warning("⚠️ Module 'folium' atau 'streamlit-folium' belum terinstall.")

@@ -139,10 +139,10 @@ if 'prefilled_nama_perusahaan' not in st.session_state:
 col_form, col_info = st.columns([5, 3], gap="large")
 
 with col_form:
-    st.markdown('<div class="form-card">', unsafe_allow_html=True)
     st.markdown("""
+    <div class="form-card">
     <div style="font-family: 'Space Grotesk', sans-serif; font-size: 1.1rem; font-weight: 600; 
-         color: #FCA5A5; margin-bottom: 20px;">📝 Form Agregasi Perusahaan</div>
+         color: #b91c1c; margin-bottom: 20px;">📝 Form Agregasi Perusahaan</div>
     """, unsafe_allow_html=True)
     
     # Pilih Tingkat Proses
@@ -164,7 +164,7 @@ with col_form:
             st.session_state.generated_id_perusahaan = ""
             st.rerun()
     with tingkat_col3:
-        if st.button("🏛️ Pusat\n(Level 7)", key="t7", use_container_width=True, type="primary" if st.session_state.selected_tingkat == 7 else "secondary"):
+        if st.button("🏛️ Pusat / Eksportir\n(Level 7)", key="t7", use_container_width=True, type="primary" if st.session_state.selected_tingkat == 7 else "secondary"):
             st.session_state.selected_tingkat = 7
             st.session_state.company_batches = []
             st.session_state.company_batch_validation = {}
@@ -185,13 +185,13 @@ with col_form:
     allowed_sources_str = ", ".join([TINGKAT_PROSES_MAP.get(l, str(l)) for l in allowed_sources_levels])
     
     st.markdown(f"""
-    <div style="background: rgba(220,38,38,0.08); border: 1px solid rgba(220,38,38,0.25); 
+    <div style="background: #FEF2F2; border: 1px solid #FECACA; 
          border-radius: 10px; padding: 12px; margin: 12px 0; font-size: 0.85rem;">
-        <span style="color: #FCA5A5;">🎯 Tingkat Dipilih:</span> 
-        <strong style="color: #F87171;">{TINGKAT_PROSES_MAP.get(selected_tingkat, '?')}</strong>
+        <span style="color: #991b1b; font-weight: 600;">🎯 Tingkat Dipilih:</span> 
+        <strong style="color: #7f1d1d;">{TINGKAT_PROSES_MAP.get(selected_tingkat, '?')}</strong>
         <br/>
-        <span style="color: #FCA5A5;">📥 Sumber yang Diizinkan:</span>
-        <strong style="color: #F87171;">{allowed_sources_str}</strong>
+        <span style="color: #991b1b; font-weight: 600;">📥 Sumber yang Diizinkan:</span>
+        <strong style="color: #7f1d1d;">{allowed_sources_str}</strong>
     </div>
     """, unsafe_allow_html=True)
     
@@ -400,26 +400,26 @@ with col_info:
     st.markdown("""
     <div class="form-card">
         <div style="font-family: 'Space Grotesk', sans-serif; font-size: 1rem; font-weight: 600; 
-             color: #FCA5A5; margin-bottom: 16px;">🏗️ Hierarki Rantai Pasok</div>
-        <div style="font-size: 0.82rem; color: #FECACA; line-height: 2.0; text-align: center;">
-            <div style="background: rgba(220,38,38,0.15); border-radius: 8px; padding: 8px; margin: 4px 0;">
-                🏛️ <strong>Pusat / Eksportir (Level 7)</strong><br>
-                <span style="font-size: 0.7rem; color: #FCA5A5;">Menarik dari GudangPelabuhan, GudangKab, dsb.</span>
+             color: #b91c1c; margin-bottom: 16px;">🏗️ Hierarki Rantai Pasok</div>
+        <div style="font-size: 0.82rem; line-height: 2.0; text-align: center;">
+            <div style="background: #FEE2E2; border: 1px solid #FECACA; border-radius: 8px; padding: 8px; margin: 4px 0;">
+                🏙️ <strong style="color:#7f1d1d;">Pusat / Eksportir (Level 7)</strong><br>
+                <span style="font-size: 0.7rem; color: #991b1b;">Menarik dari GudangPelabuhan, GudangKab, dsb.</span>
             </div>
-            <div style="color: #DC2626;">↑</div>
-            <div style="background: rgba(220,38,38,0.1); border-radius: 8px; padding: 8px; margin: 4px 0;">
-                🚢 <strong>GudangPelabuhan (Level 6)</strong><br>
-                <span style="font-size: 0.7rem; color: #FCA5A5;">Menarik dari GudangKab / Pengepul</span>
+            <div style="color: #b91c1c; font-weight: bold;">↑</div>
+            <div style="background: #FEE2E2; border: 1px solid #FECACA; border-radius: 8px; padding: 8px; margin: 4px 0;">
+                🚢 <strong style="color:#7f1d1d;">GudangPelabuhan (Level 6)</strong><br>
+                <span style="font-size: 0.7rem; color: #991b1b;">Menarik dari GudangKab / Pengepul</span>
             </div>
-            <div style="color: #DC2626;">↑</div>
-            <div style="background: rgba(220,38,38,0.08); border-radius: 8px; padding: 8px; margin: 4px 0;">
-                🏠 <strong>GudangKab (Level 5)</strong><br>
-                <span style="font-size: 0.7rem; color: #FCA5A5;">Menarik dari Pengepul (Tk. 3 & 4)</span>
+            <div style="color: #b91c1c; font-weight: bold;">↑</div>
+            <div style="background: #FEE2E2; border: 1px solid #FECACA; border-radius: 8px; padding: 8px; margin: 4px 0;">
+                🏠 <strong style="color:#7f1d1d;">GudangKab (Level 5)</strong><br>
+                <span style="font-size: 0.7rem; color: #991b1b;">Menarik dari Pengepul (Tk. 3 &amp; 4)</span>
             </div>
-            <div style="color: #DC2626;">↑</div>
-            <div style="background: rgba(245,158,11,0.08); border-radius: 8px; padding: 8px; margin: 4px 0;">
-                📦 <strong>Pengepul (Level 0 - 4)</strong><br>
-                <span style="font-size: 0.7rem; color: #FCD34D;">Tingkat Kelompok Tani s.d Luar Kabupaten</span>
+            <div style="color: #b91c1c; font-weight: bold;">↑</div>
+            <div style="background: #FEF3C7; border: 1px solid #FDE68A; border-radius: 8px; padding: 8px; margin: 4px 0;">
+                📦 <strong style="color:#78350f;">Pengepul (Level 0 - 4)</strong><br>
+                <span style="font-size: 0.7rem; color: #92400e;">Tingkat Kelompok Tani s.d Luar Kabupaten</span>
             </div>
         </div>
     </div>
@@ -428,7 +428,7 @@ with col_info:
     # Cek Data
     st.markdown("""
     <div class="form-card" style="margin-top: 12px;">
-        <div style="font-weight: 600; color: #FCA5A5; margin-bottom: 12px;">🔍 Cek Batch Perusahaan</div>
+        <div style="font-weight: 600; color: #b91c1c; margin-bottom: 12px;">🔍 Cek Batch Perusahaan</div>
     """, unsafe_allow_html=True)
     
     check_comp_id = st.text_input("ID Batch Perusahaan", placeholder="COMP-GK-001", key="check_comp")
@@ -448,10 +448,10 @@ with col_info:
                     agg_str = "🔒 Sudah Diagregasi" if is_agg else "🟢 Tersedia"
                     
                     st.markdown(f"""
-                    <div style="background: rgba(220,38,38,0.05); border: 1px solid rgba(220,38,38,0.15); 
-                         border-radius: 10px; padding: 12px; font-size: 0.78rem; color: #FECACA;">
-                        <div style="color: #FCA5A5; font-weight: 600; margin-bottom: 8px;">✅ Batch Ditemukan</div>
-                        <div>🏭 ID: <strong>{id_b}</strong></div>
+                    <div style="background: #FEF2F2; border: 1px solid #FECACA; 
+                         border-radius: 10px; padding: 12px; font-size: 0.78rem; color: #1e293b;">
+                        <div style="color: #b91c1c; font-weight: 600; margin-bottom: 8px;">✅ Batch Ditemukan</div>
+                        <div>🏗️ ID: <strong>{id_b}</strong></div>
                         <div>🏗️ Tingkat: {TINGKAT_PROSES_MAP.get(tingkat, 'Unknown')}</div>
                         <div>⚖️ Qty: {qty:,} Kg</div>
                         <div>📋 Mutu: {mutu[:50]}...</div>
@@ -471,7 +471,7 @@ with col_info:
 st.markdown("---")
 st.markdown("""
 <div style="font-family: 'Space Grotesk', sans-serif; font-size: 1.2rem; font-weight: 700;
-     color: #FCA5A5; margin-bottom: 16px;">
+     color: #b91c1c; margin-bottom: 16px;">
     📋 Daftar Batch Perusahaan per Tingkatan
 </div>
 """, unsafe_allow_html=True)
@@ -500,8 +500,8 @@ def render_company_batch_list(level: int, tab, level_name: str, color: str):
                     st.session_state[f'company_list_{level}_loaded'] = True
 
                     st.markdown(f"""
-                    <div style="background: rgba(220,38,38,0.06); border: 1px solid rgba(220,38,38,0.15);
-                         border-radius: 10px; padding: 10px 16px; font-size: 0.85rem; color: #FECACA;
+                    <div style="background: #FEF2F2; border: 1px solid #FECACA;
+                         border-radius: 10px; padding: 10px 16px; font-size: 0.85rem; color: #7f1d1d;
                          margin-bottom: 12px;">
                         📊 Total Batch {level_name}: <strong style="color: {color}; font-size: 1.1rem;">{total}</strong>
                     </div>
@@ -542,7 +542,7 @@ def render_company_batch_list(level: int, tab, level_name: str, color: str):
         else:
             st.info(f"👆 Klik **Muat / Refresh** di atas untuk memuat daftar batch {level_name}.")
 
-render_company_batch_list(5, tab_gk,    "GudangKab",       "#FCA5A5")
-render_company_batch_list(6, tab_gp,    "GudangPelabuhan", "#F87171")
-render_company_batch_list(7, tab_pusat, "Pusat",           "#EF4444")
+render_company_batch_list(5, tab_gk,    "GudangKab",       "#b91c1c")
+render_company_batch_list(6, tab_gp,    "GudangPelabuhan", "#991b1b")
+render_company_batch_list(7, tab_pusat, "Pusat",           "#7f1d1d")
 
